@@ -61,6 +61,60 @@ The Scope places a boundary around the solution by detailing the range of featur
 
 It should be specific enough that you can determine that e.g. feature A is in-scope, while feature B is out-of-scope.
 
+### In-Scope Features
+
+#### API Health Checks
+
+- Scheduled and on-demand checks to ensure the availability and responsiveness of APIs.
+- Detailed reporting on API uptime, downtimes, and performance metrics.
+
+#### Alerting and Notification System
+
+- Proactive alerts on potential issues or breaches based on user-defined thresholds.
+- Integration with communication platforms like Slack, email, and SMS for immediate notifications.
+
+#### Data Retention and Backup
+
+- Customizable data retention policies allowing users to determine how long their data is stored.
+- Automated backup systems ensuring no loss of crucial observability data.
+
+#### Interactive Query Interface
+
+- Users can directly query their stored data, allowing for custom insights and reports.
+- Support for common query languages to ensure ease of use.
+
+#### Collaboration Tools
+
+- Features that enable team members to collaborate on detected issues, share insights, and annotate data.
+- Integration with project management tools for streamlined workflows.
+
+#### Mobile Access
+
+- Mobile applications or responsive design ensuring stakeholders can monitor and react to API issues on-the-go.
+
+#### Custom Integrations
+
+- SDKs or plugins to extend the platform's capabilities, integrate with third-party tools, or support newer technologies.
+
+#### Advanced Reporting
+
+- Generation of weekly, monthly, or custom duration reports.
+- Export options in various formats such as PDF, CSV, etc.
+
+### Out-of-Scope Features
+
+#### Multi-language support for the dashboard interface
+
+- Refers to the inclusion of multiple language options in the dashboard interface. It allows users to view the dashboard in their preferred language and is especially beneficial for products with an international user base. 
+
+#### Training modules or workshops for teams
+
+- Involves providing educational modules or workshops specifically tailored for teams. It helps users or team members understand how to effectively utilize the product or system.
+
+#### Focusing on cloud-based solutions rather than on-premises deployment
+
+- Suggests that the focus will not be on on-premises deployment but exclusively on cloud-based solutions.
+
 ** **
 
 ## 4. Solution Concept
