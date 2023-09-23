@@ -57,10 +57,11 @@ This product would be designed for various stakeholders involved in development 
 
 ## 3.   Scope and Features Of The Project:
 
-The Scope places a boundary around the solution by detailing the range of features and functions of the project. This section helps to clarify the solution scope and can explicitly state what will not be delivered as well.
-
-It should be specific enough that you can determine that e.g. feature A is in-scope, while feature B is out-of-scope.
-
+- Centralized Register Development: Development of a centralized register for managing REST and gRPC APIs, including documentation, versioning, and access controls.
+- API Usage Monitoring: Implementation of API usage monitoring features, capturing metrics like request/response times, error rates, and request counts.
+- Security Integration: Integration of security features, including access controls and authentication mechanisms for secure API management.
+- Cloud Development Practices: Incorporation of cloud development practices, such as containerization and cloud deployment, for scalability and flexibility.
+- Compliance and Governance: Support for compliance tracking and reporting to ensure adherence to organizational and industry standards in API governance.
 ** **
 
 ## 4. Solution Concept
