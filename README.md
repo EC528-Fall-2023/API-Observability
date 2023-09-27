@@ -1,5 +1,10 @@
 # API-Observability
 
+BU CS528: Cloud Computing
+Project: API Observability
+Team Memebers: Jack Culley, Zachary Tan, Weiru He, Kai Imery, Young-Chan Cho
+Mentor: Surya Jayanthi
+
 ## 1.   Vision and Goals Of The Project:
 
 Our vision is to empower organizations with the tools and capabilities needed to ensure the performance, security, and reliability of their APIs in real-time. We aim to create a seamless and user-friendly observability solution that provides immediate insights into API behavior, enabling faster decision-making, proactive issue resolution, and enhanced user experiences.
