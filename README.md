@@ -12,6 +12,8 @@ Mentor: Surya Jayanthi
 
 Our vision is to empower organizations with the tools and capabilities needed to ensure the performance, security, and reliability of their APIs in real-time. We aim to create a seamless and user-friendly observability solution that provides immediate insights into API behavior, enabling faster decision-making, proactive issue resolution, and enhanced user experiences.
 
+### Must Have:
+
 #### Real-Time API Monitoring
 
 - **Goal:** Enable real-time monitoring of API traffic, performance, and behavior.
@@ -22,16 +24,6 @@ Our vision is to empower organizations with the tools and capabilities needed to
 - **Goal:** Collect and store comprehensive data about API interactions and system health.
 - **Objective:** Provide rich insights into API usage, errors, latency, and other critical metrics for better decision-making.
 
-#### Scalability and Performance
-
-- **Goal:** Create a scalable and high-performance observability system.
-- **Objective:** Ensure that the system can handle increasing data volumes and maintain responsiveness under heavy loads.
-
-#### Security and Compliance
-
-- **Goal:** Implement robust security measures and compliance with data privacy regulations.
-- **Objective:** Protect sensitive data, user privacy, and adhere to industry-specific compliance standards.
-
 #### User-Friendly Visualization
 
 - **Goal:** Provide intuitive and customizable dashboards for data visualization.
@@ -41,6 +33,18 @@ Our vision is to empower organizations with the tools and capabilities needed to
 
 - **Goal:** Develop machine learning-based anomaly detection and insights generation.
 - **Objective:** Automatically identify unusual patterns and provide actionable insights to address issues and opportunities.
+
+### Optional:
+
+#### Scalability and Performance
+
+- **Goal:** Create a scalable and high-performance observability system.
+- **Objective:** Ensure that the system can handle increasing data volumes and maintain responsiveness under heavy loads.
+
+#### Security and Compliance
+
+- **Goal:** Implement robust security measures and compliance with data privacy regulations.
+- **Objective:** Protect sensitive data, user privacy, and adhere to industry-specific compliance standards.
 
 #### Integration and Extensibility
 
@@ -109,6 +113,7 @@ The architecture of our solution starts with a data collection layer, which cons
 - Familiarize ourselves with gRPC and Observability
 - Investigate and plan cloud development considerations, including cloud service selection
 - Investigate metric measurement applications, and evaluate intergration options with metrics and visualization tools.
+
 
 ## General comments
 
