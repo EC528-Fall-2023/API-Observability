@@ -86,23 +86,19 @@ The architecture of our solution starts with a data collection layer, which cons
 ## 5. Acceptance criteria
 
 #### Inventory Creation:
-- The system should allow users to create and maintain an inventory of API services.
-- The inventory should capture essential details for each API, such as name, description, version, owner, and endpoint URL.
 
-#### API Type Support:
-- The system should support the tracking of APIs developed in both REST and gRPC.
+- The system will host gRPC and RESTful API endpoints on a cloud-based infrastructure.
+- Users can create and manage an API inventory, capturing key details such as name, description, version, owner, and endpoint URL.
+- These APIs will also facilitate user-related data retrieval via the Google Sheets API.
 
-#### REST API Details:
-- For REST APIs, the system should capture information like HTTP methods (GET, POST, PUT, DELETE), request/response formats (JSON, XML), and authentication mechanisms.
-
-#### gRPC API Details:
-- For gRPC APIs, the system should record details about the service methods, request/response message types, and authentication mechanisms.
+#### Frontend UI:
+- The implementation shall incorporate Grafana as the platform for crafting interactive and adaptable dashboards, charts, and graphs.
+- These visualizations will facilitate the analysis and presentation of data associated with the API.
 
 #### Usage Metrics:
-- The system should collect usage metrics for each API, including the number of requests, response times, and error rates.
-- Users should be able to view historical usage data and trends for informed decision-making.
+- Prometheus shall be employed to implement a suite of 10 to 12 straightforward metrics, serving as a vital component for monitoring and observing system performance and health.
 
-#### Security and Access Control:
+#### Security and Access Control (Stretch Goal):
 - The system should enforce access control to ensure that only authorized personnel can view and modify API details.
 - Sensitive information related to APIs should be protected.
 
