@@ -108,11 +108,49 @@ The architecture of our solution starts with a data collection layer, which cons
 
 ## 6.  Release Planning:
 
-### Sprint 23A (Sept 22 to Sept 29)
-- Meet with mentor to learn demands and requirements for the project
-- Familiarize ourselves with gRPC and Observability
-- Investigate and plan cloud development considerations, including cloud service selection
-- Investigate metric measurement applications, and evaluate intergration options with metrics and visualization tools.
+# 23A 
+# Project Kickoff and Planning
+- Kick off the project with a team meeting.
+- Define roles and responsibilities.
+- Review and refine the project scope.
+- Create a detailed sprint plan.
+
+# API Development and Cloud Framework Exploration
+- Start developing example APIs using gRPC and REST.
+- Explore and evaluate cloud platforms for hosting.
+
+# 23B 
+# Frontend UI Wireframing and User Testing Planning
+- Begin wireframing the frontend UI components.
+- Plan for user testing sessions.
+
+# Establish Desired Metrics and API Integration with Prometheus
+- Define the key performance metrics.
+- Begin implementing API endpoints to integrate with Prometheus.
+
+# 23C (MVP)
+# Time Series Database Schema, Backend Persistent Storage Integration, and API Catalog
+- Design and implement the time series database schema.
+- Integrate backend persistent storage with the observability UI.
+- List all APIs in a tabular form.
+
+# Metric Visualizations and User Registration Class/Header
+- Develop visualizations for the desired metrics.
+- Implement a class or header for user registration and authentication.
+
+# MVP Testing and Anomaly Detection Implementation
+- Perform testing to ensure the MVP meets basic requirements.
+- Integrate anomaly detection mechanisms for key metrics.
+
+# 23D 
+# Polling Mechanism for New Users and Monitoring/Alerting
+- Develop a mechanism to poll and capture data for new users.
+- Implement monitoring and alerting mechanisms for the observability system.
+
+# 23F 
+# Documentation and Final System Testing
+- Document the system architecture, API specifications, and database schema.
+- Perform final system testing to identify and address any remaining issues.
 
 
 ## General comments
