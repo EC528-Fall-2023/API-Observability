@@ -148,6 +148,10 @@ The architecture of our solution starts with a data collection layer, which cons
 - Document the system architecture, API specifications, and database schema.
 - Perform final system testing to identify and address any remaining issues.
 
+## 7.   Demos:
+### Sprint 1
+- https://youtu.be/fMQ8F1_lqdI
+
 
 ## General comments
 
