@@ -152,6 +152,8 @@ The architecture of our solution starts with a data collection layer, which cons
 
 ### Sprint 1
 - https://youtu.be/fMQ8F1_lqdI
+### Sprint 2
+- https://youtu.be/z9pNmTYq1sk
 
 
 ## General comments
