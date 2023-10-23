@@ -1,0 +1,38 @@
+syntax = "proto3";
+option go_package = "github.com/Ling-Qingran/gRPC-Observability/user";
+
+message User {
+  string name = 1;
+  string age = 2;
+  string commuteMethod = 3;
+  string college = 4;
+  string hobbies = 5;
+}
+
+message CreateUserRequest {
+  User user = 1;
+}
+
+message GetUserRequest {
+  string name = 1;
+}
+
+message UpdateUserRequest {
+  string name = 1;
+  User user = 2;
+}
+
+message DeleteUserRequest {
+  string name = 1;
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+}
+
+service UserService {
+  rpc GetUser(GetUserRequest) returns (User);
+  rpc UpdateUser(UpdateUserRequest) returns (User);
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+  rpc CreateUser(CreateUserRequest) returns (User);
+}
