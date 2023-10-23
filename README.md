@@ -4,7 +4,7 @@ BU CS528: Cloud Computing
 
 Project: API Observability
 
-Team Memebers: Jack Culley, Zachary Tan, Weiru He, Kai Imery, Young-Chan Cho
+Team Members: Jack Culley, Zachary Tan, Weiru He, Kai Imery, Young-Chan Cho
 
 Mentor: Surya Jayanthi
 
@@ -78,9 +78,31 @@ This product would be designed for various stakeholders involved in development 
 
 ## 4. Solution Concept
 
-The architecture of our solution starts with a data collection layer, which consists of an API gateway and instrumentation. The API gateway will capture data about each incoming request, such as request headers, payload, and metadata, while the instrumentation will collect data on request handling, response times, errors, and other relevant metrics. This information will then be passed into a data ingestion and processing layer, which includes a message queue that will be responsible for publishing data events into the queue. From here, the information will be either stream-processed or batch-processed. The stream processing will be done to handle the real-time analytics and log/event processing. The batch processing will be done to handle historical data that can be used for analytics, machine learning, or generating reports. The next layer of our solution is data storage. The data storage layer contains a time-series database which is responsible for storing time-series data for metrics such as request/response times, error rates, and traffic volume. Additionally, there will be log/trace storage which will provide detailed information regarding the log and trace data that is collected. The next layer is data visualization and dashboarding. This will be used to visualize and monitor all of the information that is being collected and gives the ability to create alert systems for different metrics. 
- 
-![Screenshot 2023-09-21 141620](https://github.com/EC528-Fall-2023/API-Observability/assets/114025961/df137ab1-b13f-492d-9b5b-d22bbfe8f5f9)
+### Overview
+We aim to develop an observability solution for API services, built around an open-source GoLang module. This module will offer extensive metrics, data storage, and visualization by leveraging several components to ensure scalability. Our development strategy is modular, focusing initially on a mock application. This ensures thorough design and testing phases before broadening the solution into a comprehensive GoLang module.
+
+### Architecture Breakdown
+
+#### 1. API Gateway
+- The mock application features both **REST** and **gRPC** API services, accessed via a **ReactJS client**.
+- We've integrated **Protobuf** with both REST and gRPC API services for scalability.
+- For metric extraction, the API Gateway will be instrumented with **Prometheus** during the developmental phase. However, the final version will rely on natively exposed metrics from GoLang and Protobuf.
+
+#### 2. InfluxDB
+- This component serves as a repository for metrics, performance, and usage data collected from the API Gateway instrumentation.
+- The front-end observability dashboard will query **InfluxDB** to present the stored data to users.
+
+#### 3. Central Registry
+- Designed to provide scalability, especially for users managing multiple API services.
+- Functions akin to zero-configuration networking: API services broadcast their status and essential details (name, service type, domain, port, metadata) upon changing their online status.
+- The Central Registry, acting as a listener, captures this information, updating a structured list that tracks the current status of all API services. This registry communicates with the front-end dashboard, ensuring that users can access an up-to-date list of services. This list, in turn, helps in querying InfluxDB for metrics.
+
+#### 4. Front-End Observability Dashboard
+- This dashboard offers a user-friendly interface, allowing users to monitor all system APIs seamlessly.
+- Users can filter APIs based on type or name and delve deeper into specific APIs for detailed metrics and insights.
+
+  
+
 
 
 ## 5. Acceptance Criteria
