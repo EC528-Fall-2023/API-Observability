@@ -175,8 +175,9 @@ We aim to develop an observability solution for API services, built around an op
 
 ### 23D 
 #### Polling Mechanism for New Users and Monitoring/Alerting
-- Develop a mechanism to poll and capture data for new users.
-- Implement monitoring and alerting mechanisms for the observability system.
+- Set up Prometheus during development phase for REST and gRPC and Integrate Protobuf for both services.
+- Set up and connect InfluxDB for metric storage from API Gateway, ensure dashboard can query data from InfluxDB.
+- Create Central Registry for tracking API services' status, and connect Central Registry to the dashboard for real-time updates.
 
 ### 23F 
 #### Documentation and Final System Testing
