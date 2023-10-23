@@ -11,10 +11,6 @@ This project is a React application that interfaces with a server backend to per
 - [Features](#features)
 - [API Endpoints](#api-endpoints)
 - [Technologies Used](#technologies-used)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
-
 ## Installation
 
 Before you can run this application, make sure you have [Node.js and npm](https://nodejs.org/en/download/) installed on your system.
