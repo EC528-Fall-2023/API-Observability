@@ -101,7 +101,8 @@ We aim to develop an observability solution for API services, built around an op
 - This dashboard offers a user-friendly interface, allowing users to monitor all system APIs seamlessly.
 - Users can filter APIs based on type or name and delve deeper into specific APIs for detailed metrics and insights.
 
-  
+  ![Observability Architecture Diagram](https://github.com/EC528-Fall-2023/API-Observability/assets/113144839/e6865567-ae16-446b-877a-41958de1dcff)
+![Mock Application Architecture](https://github.com/EC528-Fall-2023/API-Observability/assets/113144839/1f7d0c4d-6627-457c-a6fa-af90d978a06f)
 
 
 
