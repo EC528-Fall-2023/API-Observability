@@ -83,24 +83,30 @@ The architecture of our solution starts with a data collection layer, which cons
 ![Screenshot 2023-09-21 141620](https://github.com/EC528-Fall-2023/API-Observability/assets/114025961/df137ab1-b13f-492d-9b5b-d22bbfe8f5f9)
 
 
-## 5. Acceptance criteria
+## 5. Acceptance Criteria
 
-#### Inventory Creation:
-
+### Inventory Creation:
 - The system will host gRPC and RESTful API endpoints on a cloud-based infrastructure.
 - Users can create and manage an API inventory, capturing key details such as name, description, version, owner, and endpoint URL.
 - These APIs will also facilitate user-related data retrieval via the Google Sheets API.
 
-#### Frontend UI:
-- The implementation shall incorporate Grafana as the platform for crafting interactive and adaptable dashboards, charts, and graphs.
-- These visualizations will facilitate the analysis and presentation of data associated with the API.
+### Frontend UI:
+- Instead of Grafana, the implementation will leverage a custom dashboard tailored to the specific needs and aesthetics of the project.
+- This custom dashboard will provide interactive visualizations, charts, and graphs that are suited to the analysis and presentation of data associated with the API.
 
-#### Usage Metrics:
-- Prometheus shall be employed to implement a suite of 10 to 12 straightforward metrics, serving as a vital component for monitoring and observing system performance and health.
+### Usage Metrics:
+- Rather than relying on Prometheus, the system will instrument the API services by collecting natively exposed metrics from GoLang and Protobuf. 
+- A central registry will be created to manage and oversee the metrics collected.
+- This will serve as a core component for monitoring and observing system performance and health.
 
-#### Security and Access Control (Stretch Goal):
+### Security and Access Control (Stretch Goal):
 - The system should enforce access control to ensure that only authorized personnel can view and modify API details.
 - Sensitive information related to APIs should be protected.
+
+### Distribution:
+- The end product will be packaged as an installable library.
+- Developers and teams can easily incorporate this library into their codebase, enabling them to monitor the metrics of their APIs seamlessly.
+
 
 ## 6.  Release Planning:
 
