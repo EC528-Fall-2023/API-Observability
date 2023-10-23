@@ -120,6 +120,10 @@ The architecture of our solution starts with a data collection layer, which cons
 - Begin wireframing the frontend UI components.
 - Plan for user testing sessions.
 
+#### Frontend and Backend Connectivity
+- Connect frontend UI to gRPC and REST APIs
+- Allow frontend to access Google Sheets API through gRPC and Rest
+
 #### Establish Desired Metrics and API Integration with Prometheus
 - Define the key performance metrics.
 - Begin implementing API endpoints to integrate with Prometheus.
@@ -156,9 +160,5 @@ The architecture of our solution starts with a data collection layer, which cons
 ### Sprint 2
 - https://youtu.be/z9pNmTYq1sk
 
-
-## General comments
-
-Remember that you can always add features at the end of the semester, but you can't go back in time and gain back time you spent on features that you couldn't complete.
 
 ** **
