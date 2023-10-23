@@ -1,0 +1,11 @@
+syntax = "proto3";
+package main;
+option go_package = "/user"; // Use forward slashes and double quotes
+
+message User {
+  string name = 1;
+  string age = 2;
+  string commuteMethod = 3;
+  string college = 4;
+  string hobbies = 5;
+}
