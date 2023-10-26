@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -15,43 +17,40 @@ import (
 	"os"
 )
 
-//type userInput struct {
-//	Name          string `json:"name"`
-//	Age           string `json:"age"`
-//	CommuteMethod string `json:"commute_method"`
-//	College       string `json:"college"`
-//	Hobbies       string `json:"hobbies"`
-//}
-
 type userInput = pb.User
 
-//type User struct {
-//	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name"`
-//	Age           string `protobuf:"bytes,2,opt,name=age,proto3" json:"age"`
-//	CommuteMethod string `protobuf:"bytes,3,opt,name=commute_method,json=commuteMethod,proto3" json:"commute_method"`
-//	College       string `protobuf:"bytes,4,opt,name=college,proto3" json:"college"`
-//	Hobbies       string `protobuf:"bytes,5,opt,name=hobbies,proto3" json:"hobbies"`
-//}
+var (
+	totalRequests = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Number of get requests.",
+		},
+		[]string{"path"},
+	)
 
-//func (u *User) ProtoReflect() protoreflect.Message {
-//	//TODO implement me
-//	panic("implement me")
-//}
-//
-//func (u *User) ToProto() ([]byte, error) {
-//	return proto.Marshal(u)
-//}
-//
-//func FromProto(data []byte) (*User, error) {
-//	user := &User{}
-//	err := proto.Unmarshal(data, user)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return user, nil
-//}
+	requestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "Duration of HTTP requests.",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"path"},
+	)
+)
+
+func init() {
+	fmt.Println("init called")
+	prometheus.MustRegister(totalRequests)
+	prometheus.MustRegister(requestDuration)
+}
 
 func getUsersFromSheets(c *gin.Context) {
+	path := c.FullPath()
+	timer := prometheus.NewTimer(requestDuration.WithLabelValues(path))
+	defer timer.ObserveDuration()
+
+	totalRequests.WithLabelValues(path).Inc()
+
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
 	if err != nil {
@@ -96,6 +95,12 @@ func getUsersFromSheets(c *gin.Context) {
 }
 
 func getUserFromSheetsbyName(c *gin.Context) {
+	path := c.FullPath()
+	timer := prometheus.NewTimer(requestDuration.WithLabelValues(path))
+	defer timer.ObserveDuration()
+
+	totalRequests.WithLabelValues(path).Inc()
+
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
 	if err != nil {
@@ -154,6 +159,12 @@ func getUserFromSheetsbyName(c *gin.Context) {
 }
 
 func deleteUserFromSheets(c *gin.Context) {
+	path := c.FullPath()
+	timer := prometheus.NewTimer(requestDuration.WithLabelValues(path))
+	defer timer.ObserveDuration()
+
+	totalRequests.WithLabelValues(path).Inc()
+
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
 	if err != nil {
@@ -249,6 +260,12 @@ func getSheetID(spreadsheetID, sheetName string, srv *sheets.Service) int64 {
 }
 
 func updateUserInSheets(c *gin.Context) {
+	path := c.FullPath()
+	timer := prometheus.NewTimer(requestDuration.WithLabelValues(path))
+	defer timer.ObserveDuration()
+
+	totalRequests.WithLabelValues(path).Inc()
+
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
 	if err != nil {
@@ -325,6 +342,12 @@ func updateUserInSheets(c *gin.Context) {
 }
 
 func addUser(context *gin.Context) {
+	path := context.FullPath()
+	timer := prometheus.NewTimer(requestDuration.WithLabelValues(path))
+	defer timer.ObserveDuration()
+
+	totalRequests.WithLabelValues(path).Inc()
+
 	var newUser userInput
 
 	if err := context.BindJSON(&newUser); err != nil {
@@ -440,6 +463,7 @@ func main() {
 	router.PUT("/updateuser/:name", updateUserInSheets)
 	router.POST("/deleteuser/:name", deleteUserFromSheets)
 	router.POST("/adduser", addUser)
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	router.Run("localhost:4000")
 
 }

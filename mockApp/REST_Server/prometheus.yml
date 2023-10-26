@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'go-service'
+    static_configs:
+      - targets: ['localhost:4000']
+  - job_name: 'influxdb'
+    static_configs:
+      - targets: ['localhost:9122']
+
+remote_write:
+  - url: "http://localhost:8086/api/v2/write?org=API-Observability&bucket=metrics"
+    bearer_token: "ZqbPr-oJgMnp1IfrSMuks9klMNepcVuWSerh2OEoMv9R5OOFw1DEZY82JsB6kPL5TYFrXbMsukYYkS0a8DAHww=="
