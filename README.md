@@ -193,4 +193,10 @@ We aim to develop an observability solution for API services, built around an op
 - https://youtu.be/z9pNmTYq1sk
 - https://docs.google.com/presentation/d/1L15A24P99b2qUJilOyeG5eDxHLJTsWDs3QDSy5C90Kw/edit?usp=sharing
 
+### Sprint 3
+- https://youtu.be/_5oXQZSA_pc
+- https://docs.google.com/presentation/d/1Dt1SpIZKvS8tZmLFcuJYILQoJt9-rrGBiSVRH7_OtLc/edit?usp=sharing
+
+
+
 ** **
