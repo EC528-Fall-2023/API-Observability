@@ -1,13 +1,13 @@
 package main
 
 import (
+	"back-end/influxdb"
 	pb "back-end/user"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -15,41 +15,46 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 )
 
 type userInput = pb.User
 
-var (
-	totalRequests = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "http_requests_total",
-			Help: "Number of get requests.",
-		},
-		[]string{"path"},
-	)
+var influxClient = influxdb.InitInfluxDB()
 
-	requestDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "http_request_duration_seconds",
-			Help:    "Duration of HTTP requests.",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"path"},
-	)
-)
+var getUserCount int = 0
+var getUserError int = 0
+
+var getUserNameCount int = 0
+var getUserNameError int = 0
+
+var updateUserCount int = 0
+var updateUserError int = 0
+
+var deleteUserCount int = 0
+var deleteUserError int = 0
+
+var addUserCount int = 0
+var addUserError int = 0
 
 func init() {
 	fmt.Println("init called")
-	prometheus.MustRegister(totalRequests)
-	prometheus.MustRegister(requestDuration)
+	influxClient = influxdb.InitInfluxDB()
 }
 
 func getUsersFromSheets(c *gin.Context) {
-	path := c.FullPath()
-	timer := prometheus.NewTimer(requestDuration.WithLabelValues(path))
-	defer timer.ObserveDuration()
-
-	totalRequests.WithLabelValues(path).Inc()
+	startTime := time.Now()
+	getUserCount++
+	tags := map[string]string{
+		"endpoint": "getuser",
+	}
+	fields := map[string]interface{}{
+		"request_count": int64(getUserCount),
+	}
+	err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
+	if err != nil {
+		fmt.Println("Error writing metric:", err)
+	}
 
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
@@ -90,16 +95,47 @@ func getUsersFromSheets(c *gin.Context) {
 			users = append(users, user)
 		}
 	}
-
+	if err != nil {
+		getUserError++
+		tags := map[string]string{
+			"endpoint": "getuser",
+		}
+		fields := map[string]interface{}{
+			"error_count": int64(getUserError),
+		}
+		err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
+		if err != nil {
+			fmt.Println("Error writing metric:", err)
+		}
+	}
+	latency := time.Since(startTime)
+	latencyMs := float64(latency.Nanoseconds()) / 1000000.0
+	tags2 := map[string]string{
+		"endpoint": "getuser",
+	}
+	fields2 := map[string]interface{}{
+		"latency": latencyMs,
+	}
+	err2 := influxdb.WriteMetric(influxClient, "REST", tags2, fields2)
+	if err2 != nil {
+		fmt.Println("Error writing latency metric:", err2)
+	}
 	c.IndentedJSON(http.StatusOK, users)
 }
 
 func getUserFromSheetsbyName(c *gin.Context) {
-	path := c.FullPath()
-	timer := prometheus.NewTimer(requestDuration.WithLabelValues(path))
-	defer timer.ObserveDuration()
-
-	totalRequests.WithLabelValues(path).Inc()
+	startTime := time.Now()
+	getUserNameCount++
+	tags := map[string]string{
+		"endpoint": "getuser/name",
+	}
+	fields := map[string]interface{}{
+		"request_count": int64(getUserNameCount),
+	}
+	err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
+	if err != nil {
+		fmt.Println("Error writing metric:", err)
+	}
 
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
@@ -151,6 +187,31 @@ func getUserFromSheetsbyName(c *gin.Context) {
 		}
 	}
 
+	if err != nil {
+		getUserNameError++
+		tags := map[string]string{
+			"endpoint": "getuser/name",
+		}
+		fields := map[string]interface{}{
+			"error_count": int64(getUserNameError),
+		}
+		err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
+		if err != nil {
+			fmt.Println("Error writing metric:", err)
+		}
+	}
+	latency := time.Since(startTime)
+	latencyMs := float64(latency.Nanoseconds()) / 1000000.0
+	tags2 := map[string]string{
+		"endpoint": "getuser/name",
+	}
+	fields2 := map[string]interface{}{
+		"latency": latencyMs,
+	}
+	err2 := influxdb.WriteMetric(influxClient, "REST", tags2, fields2)
+	if err2 != nil {
+		fmt.Println("Error writing latency metric:", err2)
+	}
 	if found {
 		c.IndentedJSON(http.StatusOK, user)
 	} else {
@@ -159,11 +220,18 @@ func getUserFromSheetsbyName(c *gin.Context) {
 }
 
 func deleteUserFromSheets(c *gin.Context) {
-	path := c.FullPath()
-	timer := prometheus.NewTimer(requestDuration.WithLabelValues(path))
-	defer timer.ObserveDuration()
-
-	totalRequests.WithLabelValues(path).Inc()
+	startTime := time.Now()
+	deleteUserCount++
+	tags := map[string]string{
+		"endpoint": "deleteuser/name",
+	}
+	fields := map[string]interface{}{
+		"request_count": int64(deleteUserCount),
+	}
+	err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
+	if err != nil {
+		fmt.Println("Error writing metric:", err)
+	}
 
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
@@ -231,10 +299,36 @@ func deleteUserFromSheets(c *gin.Context) {
 		}).Context(ctx).Do()
 
 		if err != nil {
+			deleteUserError++
+			tags := map[string]string{
+				"endpoint": "deleteuser/name",
+			}
+			fields := map[string]interface{}{
+				"error_count": int64(deleteUserError),
+			}
+			err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
+			if err != nil {
+				fmt.Println("Error writing metric:", err)
+			}
+		}
+
+		if err != nil {
 			log.Fatalf("Error deleting row: %v", err)
 		}
 
 		fmt.Printf("Row %d deleted successfully.\n", rowToDelete)
+		latency := time.Since(startTime)
+		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
+		tags2 := map[string]string{
+			"endpoint": "deleteuser/name",
+		}
+		fields2 := map[string]interface{}{
+			"latency": latencyMs,
+		}
+		err2 := influxdb.WriteMetric(influxClient, "REST", tags2, fields2)
+		if err2 != nil {
+			fmt.Println("Error writing latency metric:", err2)
+		}
 
 		c.IndentedJSON(http.StatusOK, gin.H{"message": "user deleted"})
 	} else {
@@ -260,11 +354,18 @@ func getSheetID(spreadsheetID, sheetName string, srv *sheets.Service) int64 {
 }
 
 func updateUserInSheets(c *gin.Context) {
-	path := c.FullPath()
-	timer := prometheus.NewTimer(requestDuration.WithLabelValues(path))
-	defer timer.ObserveDuration()
-
-	totalRequests.WithLabelValues(path).Inc()
+	startTime := time.Now()
+	updateUserCount++
+	tags := map[string]string{
+		"endpoint": "updateuser/name",
+	}
+	fields := map[string]interface{}{
+		"request_count": int64(updateUserCount),
+	}
+	err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
+	if err != nil {
+		fmt.Println("Error writing metric:", err)
+	}
 
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
@@ -333,20 +434,51 @@ func updateUserInSheets(c *gin.Context) {
 
 	_, err = srv.Spreadsheets.Values.Update(spreadsheetID, writeRange, vr).ValueInputOption("RAW").Do()
 	if err != nil {
+		updateUserError++
+		tags := map[string]string{
+			"endpoint": "updateuser/name",
+		}
+		fields := map[string]interface{}{
+			"error_count": int64(updateUserError),
+		}
+		err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
+		if err != nil {
+			fmt.Println("Error writing metric:", err)
+		}
+	}
+	if err != nil {
 		log.Printf("Error updating user in Google Sheets: %v", err)
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Unable to update user in Google Sheets"})
 		return
 	}
-
+	latency := time.Since(startTime)
+	latencyMs := float64(latency.Nanoseconds()) / 1000000.0
+	tags2 := map[string]string{
+		"endpoint": "updateuser/name",
+	}
+	fields2 := map[string]interface{}{
+		"latency": latencyMs,
+	}
+	err2 := influxdb.WriteMetric(influxClient, "REST", tags2, fields2)
+	if err2 != nil {
+		fmt.Println("Error writing latency metric:", err2)
+	}
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "user updated"})
 }
 
 func addUser(context *gin.Context) {
-	path := context.FullPath()
-	timer := prometheus.NewTimer(requestDuration.WithLabelValues(path))
-	defer timer.ObserveDuration()
-
-	totalRequests.WithLabelValues(path).Inc()
+	startTime := time.Now()
+	addUserCount++
+	tags := map[string]string{
+		"endpoint": "adduser",
+	}
+	fields := map[string]interface{}{
+		"request_count": int64(addUserCount),
+	}
+	err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
+	if err != nil {
+		fmt.Println("Error writing metric:", err)
+	}
 
 	var newUser userInput
 
@@ -354,10 +486,33 @@ func addUser(context *gin.Context) {
 		return
 	}
 	if err := addUsertoGoogleSheets(newUser); err != nil {
+		addUserError++
+		tags := map[string]string{
+			"endpoint": "adduser",
+		}
+		fields := map[string]interface{}{
+			"error_count": int64(addUserError),
+		}
+		err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
+		if err != nil {
+			fmt.Println("Error writing metric:", err)
+		}
 		context.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Failed to store data in Google Sheets"})
 		return
 	}
 
+	latency := time.Since(startTime)
+	latencyMs := float64(latency.Nanoseconds()) / 1000000.0
+	tags2 := map[string]string{
+		"endpoint": "adduser",
+	}
+	fields2 := map[string]interface{}{
+		"latency": latencyMs,
+	}
+	err2 := influxdb.WriteMetric(influxClient, "REST", tags2, fields2)
+	if err2 != nil {
+		fmt.Println("Error writing latency metric:", err2)
+	}
 	context.IndentedJSON(http.StatusCreated, newUser)
 }
 
@@ -453,8 +608,52 @@ func addUsertoGoogleSheets(user userInput) error {
 
 	return nil
 }
+func registerWithRegistry(name, host string, port int, servType string) {
+	registryURL := "http://localhost:8090/register"
+	registrationData := Registration{
+		Name: name,
+		Host: host,
+		Port: port,
+		Type: servType,
+	}
+
+	jsonData, err := json.Marshal(registrationData)
+	if err != nil {
+		fmt.Println("Error marshalling registration data:", err)
+		return
+	}
+
+	resp, err := http.Post(registryURL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Println("Error sending registration request:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Received non-OK response from registry: %d\n", resp.StatusCode)
+		return
+	}
+
+	fmt.Println("Service successfully registered with registry")
+}
+
+type Registration struct {
+	Name string `json:"name"`
+	Host string `json:"host"`
+	Port int    `json:"port"`
+	Type string `json:"type"`
+}
 
 func main() {
+	serviceName := "Student-Info REST Service"
+	serviceHost := "localhost"
+	servicePort := 4000
+	serviceType := "REST"
+
+	// Register your service with the registry
+	registerWithRegistry(serviceName, serviceHost, servicePort, serviceType)
+
 	//initialize the router using gin
 	router := gin.Default()
 
@@ -463,7 +662,11 @@ func main() {
 	router.PUT("/updateuser/:name", updateUserInSheets)
 	router.POST("/deleteuser/:name", deleteUserFromSheets)
 	router.POST("/adduser", addUser)
-	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	router.GET("/status", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "Up",
+		})
+	})
 	router.Run("localhost:4000")
 
 }
