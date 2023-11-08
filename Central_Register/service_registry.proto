@@ -1,0 +1,18 @@
+syntax = "proto3";
+package main;
+option go_package = "/service_reg"; // Use forward slashes and double quotes
+
+message APIService {
+  string Name = 1;
+  string Status = 2;
+  string Host = 3;
+  int32 Port = 4;
+  string Type = 5;
+}
+
+message Registration {
+  string Name = 1;
+  string Host = 2;
+  int32 Port = 3;
+  string Type = 4;
+}
