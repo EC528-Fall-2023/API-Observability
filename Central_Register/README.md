@@ -37,3 +37,22 @@ Run this command to generate the pb.go files:
     ```bash
     go run main.go
     ```
+
+### Register a Service
+
+Send a `POST` request to `/register` with a JSON body containing the name, host, port, and type of the service.
+
+Example:
+
+```json
+{
+  "Name": "example-service",
+  "Host": "localhost",
+  "Port": 8080,
+  "Type": "HTTP"
+}
+```
+
+### Get List of Services
+
+Send a `GET` request to `/services` to obtain an array of JSON objects containing the name, status, host, port, and type of the service. 
