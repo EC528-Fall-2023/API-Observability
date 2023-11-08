@@ -10,7 +10,6 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   backgroundColor: '#F0F0F0',
   padding: '10px',
 }));
-
 const StyledButton = styled(Button)(({ theme, requestType }) => {
   let backgroundColor;
   let hoverColor;
