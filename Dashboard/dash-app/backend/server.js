@@ -7,8 +7,8 @@ const { InfluxDB, flux } = require('@influxdata/influxdb-client')
 
 // vars to connect to bucket in influxdb
 const baseURL = "http://localhost:8086"; // url of your local InfluxDB instance
-const influxToken = "hzIhrWi_NhfpE-32wfVTkebF98z_X_jcuOcDmGlzhjxOgYT9uMnNKpa1gRBaDmE7OrcMC7PQij6-DqEiTFeKIw=="; // token
-const orgID = "1aaa9955ce11b8e7"; // org id
+const influxToken = "YOUR_TOKEN"; // token
+const orgID = "YOUR_ORG"; // org id
 const bucket = "metrics"; // name of your bucket
 
 // connect to influxdb
