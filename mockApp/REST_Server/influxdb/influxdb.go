@@ -10,7 +10,7 @@ const (
 	url    = "http://34.86.236.100"
 	bucket = "testing"
 	org    = "API-Observability"
-	token  = "AxNHAn8hBBhsHz0o6HVJ2iM9gfGqybVWugTx5crw0o2yvkPTURsZqztPjxOXp4YWR2Hy9jiQPZePyilXFh7lcg=="
+	token  = [Insert Own Token Here]
 )
 
 func InitInfluxDB() influxdb2.Client {
