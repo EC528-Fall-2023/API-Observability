@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Form, Container, Header, Table } from 'semantic-ui-react';
+
+//import userService from './UserServiceClient';
+
 import axios from 'axios';
 import './index.css';
 
@@ -10,14 +13,22 @@ function App() {
   const [college, setCollege] = useState('');
   const [hobbies, setHobbies] = useState('');
   const [APIdata, setAPIdata] = useState([]);
-  const [refresh, setRefresh] = useState([]);
+  //const [refresh, setRefresh] = useState([]);
   const [apiMode, setApiMode] = useState('REST'); // Default mode is REST
 
-  const handleSubmit = (e) => {
+  const { UserServiceClient } = require('./user_grpc_web_pb');
+  const { CreateUserRequest, DeleteUserRequest, GetUserRequest, UpdateUserRequest, User } = require('./user_pb.js');
+  var client = new UserServiceClient('http://localhost:9090', null, null);
+  const [user, setUser] = useState(null);
+  
+  //const handleSubmit = (e) => {
+  const handleSubmit = (e = { preventDefault: () => {} }) => {
     e.preventDefault();
 
     const objt = { name, age, commute_method, college, hobbies };
-    const apiUrl = apiMode === 'REST' ? 'http://localhost:4000/adduser' : 'https://sheet.best/api/sheets/ab206fd6-ee69-4b1d-a56f-f29c0ba70176';
+    //const apiUrl = apiMode === 'REST' ? 'http://localhost:4000/adduser' : 'https://sheet.best/api/sheets/ab206fd6-ee69-4b1d-a56f-f29c0ba70176';
+    const apiUrl = apiMode === 'REST' ? 'https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/adduser' : 'https://sheet.best/api/sheets/ab206fd6-ee69-4b1d-a56f-f29c0ba70176';
+    //https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/
 
     axios.post(apiUrl, objt).then((response) => {
       console.log(response);
@@ -25,14 +36,16 @@ function App() {
     });
   };
 
-  const handleUpdate = (e) => {
+  //const handleUpdate = (e) => {
+  const handleUpdate = (e = { preventDefault: () => {} }) => {
     e.preventDefault();
 
     const objt = { name, age, commute_method, college, hobbies };
 
     axios
         .put(
-            `http://localhost:4000/updateuser/${name}`, // Update with your Go server route
+            //`http://localhost:4000/updateuser/${name}`, // Update with your Go server route
+            'https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/updateuser/${name}',
             objt
         )
         .then((response) => {
@@ -41,11 +54,13 @@ function App() {
         });
   };
 
-  const handleSearch = (e) => {
+  //const handleSearch = (e) => {
+  const handleSearch = (e = { preventDefault: () => {} }) => {
     e.preventDefault();
   
     // Perform the search using the name in the state
-    axios.get(`http://localhost:4000/getuser/${name}`)
+    //axios.get(`http://localhost:4000/getuser/${name}`)
+    axios.get(`https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/getuser/${name}`)
       .then((response) => {
         setAPIdata([response.data]); // Wrap the response data in an array
         // Add logic to handle the search response
@@ -57,9 +72,12 @@ function App() {
   };
   
 
-  const handleAll = () => {
+  //const handleAll = () => {
+  const handleAll  = (e = { preventDefault: () => {} }) => {
+
     // Fetch all data from the server and reset the APIdata state
-    axios.get('http://localhost:4000/getuser')
+    //axios.get('http://localhost:4000/getuser')
+    axios.get('https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/getuser')
       .then((incomingData) => {
         setAPIdata(incomingData.data);
       })
@@ -73,8 +91,8 @@ function App() {
   const handleDelete = (e) => {
     e.preventDefault();
 
-    const apiUrl = `http://localhost:4000/deleteuser/${name}`; // Update with your Go server route
-
+    //const apiUrl = `http://localhost:4000/deleteuser/${name}`; // Update with your Go server route
+    const apiUrl = `https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/deleteuser/${name}`; // Update with your Go server route
     axios
         .post(apiUrl)
         .then((response) => {
@@ -83,8 +101,133 @@ function App() {
         });
   };
 
+  const handleGetUser = () => {
+    let request = new GetUserRequest();
+    request.setName(name);
+
+    client.getUser(request, {}, (err, response) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      //setUser(response.toObject());
+      //setAPIdata([response.data]);
+      setAPIdata([response.toObject()]);
+    });
+  };
+
+  const handleCreateUser = () => {
+    // Create a User message and set its fields
+    let userMessage = new User();
+    userMessage.setName(name);
+    userMessage.setAge(age);  // Assuming User has a setAge method
+    userMessage.setCommutemethod(commute_method); // and so on for other fields...
+    userMessage.setCollege(college);
+    userMessage.setHobbies(hobbies);
+  
+    // Create a CreateUserRequest and set its user message
+    let request = new CreateUserRequest();
+    request.setUser(userMessage);
+  
+    client.createUser(request, {}, (err, response) => {
+      if (err) {
+        console.error(err);
+        alert('Failed to create user: ' + err.message);
+        return;
+      }
+      alert('User successfully created!');
+      // Reset the form fields after successful creation
+      setName('');
+      setAge('');
+      setcommute_method('');
+      setCollege('');
+      setHobbies('');
+    });
+  };
+
+  const handleUpdateUser = () => {
+    let request = new UpdateUserRequest();
+    
+    // Create a User message and set its fields
+    let userMessage = new User();
+    userMessage.setName(name)
+    userMessage.setAge(age); // Assuming User has a setAge method
+    userMessage.setCommutemethod(commute_method); // and so on for other fields...
+    userMessage.setCollege(college);
+    userMessage.setHobbies(hobbies);
+    
+    // Set the name and user message in UpdateUserRequest
+    request.setName(name);
+    request.setUser(userMessage);
+    
+    client.updateUser(request, {}, (err, response) => {
+      if (err) {
+        console.error(err);
+        alert('Failed to update user: ' + err.message);
+        return;
+      }
+      alert('User successfully updated!');
+    });
+  };
+
+  const handleDeleteUser = () => {
+    let request = new DeleteUserRequest();
+    request.setName(name);
+
+    client.deleteUser(request, {}, (err, response) => {
+        if (err) {
+            console.error(err);
+            alert('Failed to delete user: ' + err.message);
+            return;
+        }
+        alert('User successfully deleted!');
+
+        // Clear the displayed user details
+        setUser(null);
+
+        // Clear the input field, if needed
+        setName('');
+
+        
+    });
+  };
+
+  const handleSubmitChoice = () => {
+    if (apiMode === 'REST') {
+      handleSubmit();
+    } else {
+      handleCreateUser();
+    }
+  };
+
+  const handleUpdateChoice = () => {
+    if (apiMode === 'REST') {
+      handleUpdate();
+    } else {
+      handleUpdateUser();
+    }
+  };
+
+  const handleDeleteChoice = () => {
+    if (apiMode === 'REST') {
+      handleDelete();
+    } else {
+      handleDeleteUser();
+    }
+  };
+
+  const handleSearchChoice = () => {
+    if (apiMode === 'REST') {
+      handleSearch();
+    } else {
+      handleGetUser();
+    }
+  };
+
+
   useEffect(() => {
-    axios.get('http://localhost:4000/getuser')
+    //axios.get('http://localhost:4000/getuser')
+    axios.get('https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/getuser')
         .then((incomingData) => {
           setAPIdata(incomingData.data);
         })
@@ -137,16 +280,16 @@ function App() {
             />
           </Form.Field>
 
-          <Button color="blue" type="submit" onClick={handleSubmit}>
+          <Button color="blue" type="submit" onClick={handleSubmitChoice}>
             Submit
           </Button>
-          <Button color="blue" type="submit" onClick={handleUpdate}>
+          <Button color="blue" type="submit" onClick={handleUpdateChoice}>
             Update
           </Button>
-          <Button color="blue" type="submit" onClick={handleDelete}>
+          <Button color="blue" type="submit" onClick={handleDeleteChoice}>
             Delete
           </Button>
-          <Button color="blue" type="submit" onClick={handleSearch}>
+          <Button color="blue" type="submit" onClick={handleSearchChoice}>
             Search
           </Button>
           <Button color="blue" onClick={handleAll}>
@@ -180,3 +323,4 @@ function App() {
 }
 
 export default App;
+
