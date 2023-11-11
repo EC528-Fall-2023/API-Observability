@@ -7,7 +7,7 @@ static_resources:
   listeners:
     - name: listener_0
       address:
-        socket_address: { address: 0.0.0.0, port_value: 9090 }
+        socket_address: { address: 0.0.0.0, port_value: 9090 } # Update to 8080 if deploying on Google Cloud Run
       filter_chains:
         - filters:
             - name: envoy.http_connection_manager
@@ -30,9 +30,10 @@ static_resources:
                         allow_origin_string_match:
                           - safe_regex:
                               google_re2: {}
-                              regex: "^http://localhost:3000$"
+                              regex: "^https://mymockapp-necuf5ddgq-ue.a.run.app$" # Updated to match your App.js domain
                         allow_headers: keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout
                         expose_headers: grpc-status,grpc-message
+                        max_age: "1728000" # Optional: Specifies how long the results of a preflight request can be cached
                 http_filters:
                   - name: envoy.filters.http.cors
                     typed_config:
