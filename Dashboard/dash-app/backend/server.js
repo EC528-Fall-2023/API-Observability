@@ -28,7 +28,7 @@ from(bucket: "testing")
   |> filter(fn: (r) => r["_measurement"] == "REST")
   |> filter(fn: (r) => r["_field"] == "latency" or r["_field"] == "request_count")
   |> aggregateWindow(every: 1m, fn: min, createEmpty: false)
-  |> yield(name: "mean");
+  |> yield(name: "mean")
   |> fill(usePrevious: true)`
 
 
