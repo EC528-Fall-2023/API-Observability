@@ -18,7 +18,8 @@ function App() {
 
   const { UserServiceClient } = require('./user_grpc_web_pb');
   const { CreateUserRequest, DeleteUserRequest, GetUserRequest, UpdateUserRequest, User } = require('./user_pb.js');
-  var client = new UserServiceClient('http://localhost:9090', null, null);
+  //var client = new UserServiceClient('http://localhost:9090', null, null);
+  var client = new UserServiceClient('https://envoy-proxy-necuf5ddgq-ue.a.run.app', null, null);
   const [user, setUser] = useState(null);
   
   //const handleSubmit = (e) => {
