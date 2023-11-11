@@ -1,10 +1,10 @@
-// service-registry.go
 package main
 
 import (
 	pb "centralReg/service_reg"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"sync"
@@ -18,6 +18,11 @@ var registry = struct {
 	sync.RWMutex
 	services map[string]*ApiService
 }{services: make(map[string]*ApiService)}
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
 
 func main() {
 	go monitorServices()
@@ -49,32 +54,51 @@ func checkServiceStatus(service *ApiService) {
 }
 
 func registerService(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Upgrade to websocket failed:", err)
 		return
 	}
+	defer conn.Close()
 
-	var reg Registration
-	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&reg); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	for {
+		// Read message from WebSocket connection
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			log.Println("Error reading message:", err)
+			break
+		}
+
+		var reg Registration
+		if err := json.Unmarshal(msg, &reg); err != nil {
+			log.Printf("Error decoding registration data: %s", err)
+			// Optionally, send an error message back to the client
+			conn.WriteMessage(websocket.TextMessage, []byte("Invalid registration data"))
+			continue
+		}
+
+		registry.Lock()
+		registry.services[reg.Name] = &ApiService{
+			Name: reg.Name,
+			Host: reg.Host,
+			Port: reg.Port,
+			Type: reg.Type,
+		}
+		registry.Unlock()
+
+		log.Printf("Service %s which is %s registered successfully with Host: %s, Port: %d\n", reg.Name, reg.Type, reg.Host, reg.Port)
+		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Service %s registered successfully", reg.Name)))
 	}
-
-	registry.Lock()
-	registry.services[reg.Name] = &ApiService{
-		Name: reg.Name,
-		Host: reg.Host,
-		Port: reg.Port,
-		Type: reg.Type,
-	}
-	registry.Unlock()
-
-	log.Printf("Service %s which is %s registered successfully with Host: %s, Port: %d\n", reg.Name, reg.Type, reg.Host, reg.Port)
-	fmt.Fprintf(w, "Service %s registered successfully", reg.Name)
 }
 
 func listServices(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Upgrade to websocket failed:", err)
+		return
+	}
+	defer conn.Close()
+
 	registry.RLock()
 	defer registry.RUnlock()
 
@@ -84,21 +108,12 @@ func listServices(w http.ResponseWriter, r *http.Request) {
 		services = append(services, service)
 	}
 
-	// Set the content type to application/json
-	w.Header().Set("Content-Type", "application/json")
-
-	// Encode the services slice to JSON and send it as the response
-	encoder := json.NewEncoder(w)
-	if err := encoder.Encode(services); err != nil {
-		// Handle the error appropriately
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Printf("Error encoding services list: %s\n", err)
+	// Send the service list over WebSocket
+	err = conn.WriteJSON(services)
+	if err != nil {
+		log.Println("Error sending services over WebSocket:", err)
 		return
 	}
 
-	log.Println("Listing all registered services:")
-	// Logging the services; consider removing if it's too verbose
-	for _, service := range services {
-		log.Printf("%s: %s\n", service.Name, service.Status)
-	}
+	log.Println("Sent services list over WebSocket")
 }
