@@ -1,130 +1,141 @@
 import React, { useRef, useEffect } from 'react';
 import * as d3 from 'd3';
 
-const LineChart = ({ data }) => {
+const LineChart = ({ dataSets, title }) => {
   const chartRef = useRef(null);
 
   useEffect(() => {
-    if (data && chartRef.current) {
+    if (dataSets.length > 0 && chartRef.current) {
       const svg = d3.select(chartRef.current);
       svg.selectAll("*").remove(); // Clear previous data
 
       const width = 900;
       const height = 300;
-      const margin = { top: 40, right: 20, bottom: 40, left: 60 }; // Adjusted margin to fit labels
+      const margin = { top: 40, right: 150, bottom: 40, left: 40 }; // Adjusted right margin for legend
 
-      // Create scales
-      const x = d3.scaleTime().domain(d3.extent(data, d => new Date(d.timestamp))).range([margin.left, width - margin.right]);
-      const y = d3.scaleLinear().domain([0, d3.max(data, d => d.request_rate)]).nice().range([height - margin.bottom, margin.top]);
+      // Calculate the overall extent of timestamps across all datasets
+      const timeExtents = dataSets.reduce((acc, dataSet) => {
+        const extent = d3.extent(dataSet.data, d => new Date(d.timestamp));
+        return [d3.min([acc[0], extent[0]]), d3.max([acc[1], extent[1]])];
+      }, [Infinity, -Infinity]);
+
+      const x = d3.scaleTime()
+        .domain(timeExtents)
+        .range([margin.left, width - margin.right]);
+      
+      const maxY = d3.max(dataSets.map(ds => d3.max(ds.data, d => d.value)));
+      const y = d3.scaleLinear()
+        .domain([0, maxY])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
 
       // Create axes
       const xAxis = g => g
         .attr("transform", `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(x).ticks(6))
-        .attr("font-weight", "bold")
-        .attr("font-size", "14px"); // Added font-size as an example of styling
+        .call(d3.axisBottom(x).ticks(width / 80).tickSizeOuter(0));
 
       const yAxis = g => g
         .attr("transform", `translate(${margin.left},0)`)
-        .call(d3.axisLeft(y).ticks(height/50))
-        .attr("font-weight", "bold")
-        .attr("font-size", "14px"); // Added font-size as an example of styling
+        .call(d3.axisLeft(y));
 
-      // Create line generator
-      const line = d3.line()
-        .defined(d => !isNaN(d.request_rate))
-        .x(d => x(new Date(d.timestamp)))
-        .y(d => y(d.request_rate));
-
-      // Line path
-      svg.append("path")
-        .datum(data)
-        .attr("fill", "none")
-        .attr("stroke", "#33A1C9")
-        .attr("stroke-width", 5)
-        .attr("stroke-linejoin", "round")
-        .attr("stroke-linecap", "round")
-        .attr("d", line);
-
-      // Append axes
       svg.append("g").call(xAxis);
       svg.append("g").call(yAxis);
 
-      // Title
+      // Generate a line for each dataset
+      dataSets.forEach((dataSet, i) => {
+        const line = d3.line()
+          .defined(d => !isNaN(d.value))
+          .x(d => x(new Date(d.timestamp)))
+          .y(d => y(d.value));
+
+        svg.append("path")
+          .datum(dataSet.data)
+          .attr("fill", "none")
+          .attr("stroke", d3.schemeCategory10[i % 10])
+          .attr("stroke-width", 2)
+          .attr("d", line);
+      });
+
+      // Add title
       svg.append("text")
         .attr("x", width / 2)
-        .attr("y", margin.top - 15)
+        .attr("y", margin.top / 2)
         .attr("text-anchor", "middle")
-        .attr("font-weight", "bold")
-        .attr("font-size", "14px")
-        .text("Request Rate");
+        .style("font-size", "16px")
+        .style("text-decoration", "underline")
+        .text(title);
 
-      // Y Axis label
-      svg.append("text")
-        .attr("transform", "rotate(-90)")
-        .attr("y", 0)
-        .attr("x", -(height / 2))
-        .attr("dy", "1em")
-        .attr("text-anchor", "middle")
-        .attr("font-weight", "bold")
-        .attr("font-size", "12px")
-        .text("Request Rate");
+      // Add a legend
+      const legendSpacing = 20;
+      const legend = svg.append("g")
+        .attr("class", "legend")
+        .attr("transform", `translate(${width - margin.right + 20},${margin.top})`);
 
-      // X Axis label
-      svg.append("text")
-        .attr("x", width / 2)
-        .attr("y", height + 10)
-        .attr("dy", "-1em")
-        .attr("text-anchor", "middle")
-        .attr("font-weight", "bold")
-        .attr("font-size", "12px")
-        .text("Time");
+      dataSets.forEach((dataSet, i) => {
+        const legendItem = legend.append("g")
+          .attr("transform", `translate(0, ${i * legendSpacing})`);
 
-      // Hover functionality
-      const focus = svg.append("g")
-        .attr("class", "focus")
-        .style("display", "none");
+        legendItem.append("rect")
+          .attr("width", 10)
+          .attr("height", 10)
+          .attr("fill", d3.schemeCategory10[i % 10]);
 
-      focus.append("circle")
-        .attr("r", 4.5);
+        legendItem.append("text")
+          .attr("x", 15)
+          .attr("y", 10)
+          .attr("text-anchor", "start")
+          .style("font-size", "12px")
+          .text(dataSet.type);
+      });
 
-      focus.append("text")
-        .attr("x", 9)
-        .attr("dy", ".35em");
+      // Ensure the legend is within the bounds of the chart
+      const legendHeight = dataSets.length * legendSpacing;
+      if (height - margin.bottom - legendHeight < 0) {
+        legend.attr("transform", `translate(${width - margin.right + 20},${height - margin.bottom - legendHeight})`);
+      }
+      // // Hover functionality
+      // const focus = svg.append("g")
+      //   .attr("class", "focus")
+      //   .style("display", "none");
 
-        svg.append("rect")
-        .attr("class", "overlay")
-        .attr("width", width)
-        .attr("height", height)
-        .attr("fill", "none")
-        .attr("pointer-events", "all") // This ensures it still listens to mouse events
-        .on("mouseover", () => focus.style("display", null))
-        .on("mouseout", () => focus.style("display", "none"))
-        .on("mousemove", mousemove);
-    
+      // focus.append("circle")
+      //   .attr("r", 4.5);
 
-        function mousemove(event) {
-            const bisect = d3.bisector(d => new Date(d.timestamp)).left;
-            const x0 = x.invert(d3.pointer(event, this)[0]);
-            const i = bisect(data, x0, 1);
-        
-            // Check if data points exist
-            if (i <= 0 || !data[i - 1] || !data[i]) return;
-        
-            const d0 = data[i - 1];
-            const d1 = data[i];
-            const d = x0 - new Date(d0.timestamp) > new Date(d1.timestamp) - x0 ? d1 : d0;
-            focus.attr("transform", `translate(${x(new Date(d.timestamp))},${y(d.request_rate)})`);
+      // focus.append("text")
+      //   .attr("x", 9)
+      //   .attr("dy", ".35em");
 
-    // Position the text element relative to the focus group without moving the circle
-    focus.select("text")
-        .attr("x", 9) // This sets the text offset from the circle
-        .attr("y", -10) // This moves the text above the circle
-        .text(`${d.request_rate.toFixed(3)} at ${d3.timeFormat("%B %d, %Y %I:%M:%S %p")(new Date(d.timestamp))}`); // Include time in the text
-        }
-        
+      // svg.append("rect")
+      //   .attr("class", "overlay")
+      //   .attr("width", width - margin.left - margin.right)
+      //   .attr("height", height - margin.top - margin.bottom)
+      //   .attr("transform", `translate(${margin.left},${margin.top})`)
+      //   .attr("fill", "none")
+      //   .attr("pointer-events", "all")
+      //   .on("mouseover", () => focus.style("display", null))
+      //   .on("mouseout", () => focus.style("display", "none"))
+      //   .on("mousemove", mousemove);
+
+      // function mousemove(event) {
+      //   const x0 = x.invert(d3.pointer(event)[0]);
+      //   dataSets.forEach(dataSet => {
+      //     const bisect = d3.bisector(d => new Date(d.timestamp)).left;
+      //     const i = bisect(dataSet.data, x0, 1);
+      //     const d0 = dataSet.data[i - 1];
+      //     const d1 = dataSet.data[i];
+      //     const d = x0 - new Date(d0.timestamp) > new Date(d1.timestamp) - x0 ? d1 : d0;
+          
+      //     focus.select("circle")
+      //       .attr("transform", `translate(${x(new Date(d.timestamp))},${y(d.value)})`);
+          
+      //     focus.select("text")
+      //       .attr("transform", `translate(${x(new Date(d.timestamp))},${y(d.value)})`)
+      //       .text(`at ${d3.timeFormat("%B %d, %Y %I:%M:%S %p")(new Date(d.timestamp))}`);
+      //   });
+      // }
+      
     }
-  }, [data]);
+  }, [dataSets, title]); // Only re-run the effect if dataSets or title changes
 
   return <svg ref={chartRef} width="900" height="300"></svg>;
 };

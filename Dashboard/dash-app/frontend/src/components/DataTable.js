@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Collapse, Box,Typography  } from '@mui/material';
+import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Collapse, Box,Typography,MenuItem, Select, InputLabel, FormControl, OutlinedInput, Checkbox, ListItemText  } from '@mui/material';
 import { styled } from '@mui/system';
 import { useEffect } from 'react';
 import LineChart from './LineChart'
@@ -191,6 +191,9 @@ const DataTable = () => {
   const [data, setData] = useState([]); // Replace mockData with this state
   const [onlineAPI, setOnline]=useState(0);
   const [regAPI, setReg]=useState(0);
+  const [selectedGraphTypes, setSelectedGraphTypes] = useState([]);
+  const [graphdata, setGraphdata] = useState([]);
+  const [selectedRow, setSelectedRow] = useState(null);
 
   const [uptime, setUptime] = useState(0);
 
@@ -202,7 +205,32 @@ const DataTable = () => {
     return () => clearInterval(interval); // Cleanup on unmount
   }, []);
 
+  const handleGraphTypeChange = (event) => {
+    const {
+      target: { value },
+    } = event;
+    setSelectedGraphTypes(typeof value === 'string' ? value.split(',') : value);
+  };
+
+  useEffect(() => {
+    if (selectedRow != null) {
+      const selectedRowData = data.find(row => row.path === selectedRow);
+      if (selectedRowData) {
+        // New code for setting multiple graph types
+        const newGraphData = selectedGraphTypes.map(type => ({
+          type,
+          data: selectedRowData.history.map(entry => ({
+            timestamp: entry.timestamp,
+            value: entry[type] // The bracket notation allows for dynamic property access
+          })),
+        }));
+        setGraphdata(newGraphData); // Now you're setting an array of graph data objects
+      }
+    }
+  }, [selectedGraphTypes, selectedRow, data]);
   
+  
+  console.log(graphdata)
 
   useEffect(() => {
   
@@ -319,7 +347,10 @@ const DataTable = () => {
                     <StyledButton
                       variant="contained"
                       requestType={row.type}
-                      onClick={() => setOpenRow(row.path === openRow ? null : row.path)}
+                      onClick={() => {
+                        setOpenRow(row.path === openRow ? null : row.path);
+                        setSelectedRow(row.path === openRow ? null : row.path); // Update selectedRow state here
+                      }}
                     >
                       {row.type}
                     </StyledButton>
@@ -336,11 +367,31 @@ const DataTable = () => {
                   <TableCell colSpan={8}>
                     <Collapse in={openRow === row.path} timeout="auto" unmountOnExit>
                       <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', height: '100%' }}>
-                        <div style={{ flex: 1, paddingRight: '10%', paddingLeft: '10%', width: '100%' }}>
+                        <div style={{ flex: 1, paddingRight: '5%', paddingLeft: '10%', width: '100%' }}>
                           <DetailedInfo variables={row.variables} />
                         </div>
+                        <div><FormControl sx={{ m: 1, width: 300 }}>
+                                <InputLabel id="multiple-checkbox-label">Graph Types</InputLabel>
+                                <Select
+                                  labelId="multiple-checkbox-label"
+                                  id="multiple-checkbox"
+                                  multiple
+                                  value={selectedGraphTypes}
+                                  onChange={handleGraphTypeChange}
+                                  input={<OutlinedInput label="Graph Types" />}
+                                  renderValue={(selected) => selected.join(', ')}
+                                >
+                                  {['response_rate', 'count', /* other types */].map((type) => (
+                                    <MenuItem key={type} value={type}>
+                                      <Checkbox checked={selectedGraphTypes.indexOf(type) > -1} />
+                                      <ListItemText primary={type} />
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                              </div>
                         <div style={{ flex: 2 }}>
-                          <LineChart data={row.history} />
+                        <LineChart dataSets={graphdata} title="Graph Title" />
                         </div>
                       </div>
                     </Collapse>
