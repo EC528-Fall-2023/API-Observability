@@ -3,11 +3,11 @@ package main
 import (
 	"back-end/influxdb"
 	pb "back-end/user"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -46,15 +46,39 @@ func getUsersFromSheets(c *gin.Context) {
 	startTime := time.Now()
 	getUserCount++
 	tags := map[string]string{
-		"endpoint": "getuser",
+		"endpoint":   "getuser",
+		"user_agent": c.Request.UserAgent(),
+		"ip_address": c.ClientIP(),
 	}
 	fields := map[string]interface{}{
 		"request_count": int64(getUserCount),
+		"request_size":  c.Request.ContentLength,
 	}
-	err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
-	if err != nil {
-		fmt.Println("Error writing metric:", err)
-	}
+
+	var users []userInput
+	defer func() {
+		if r := recover(); r != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		}
+
+		if len(users) == 0 {
+			getUserError++
+			fields["error_count"] = int64(getUserError)
+			fields["status_code"] = http.StatusInternalServerError
+		} else {
+			fields["status_code"] = http.StatusOK
+		}
+
+		fields["response_size"] = c.Writer.Size()
+
+		latency := time.Since(startTime)
+		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
+		fields["latency"] = latencyMs
+
+		if err := influxdb.WriteMetric(influxClient, "REST", tags, fields); err != nil {
+			fmt.Println("Error writing metrics:", err)
+		}
+	}()
 
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
@@ -62,7 +86,6 @@ func getUsersFromSheets(c *gin.Context) {
 		log.Fatalf("Unable to read client secret file: %v", err)
 	}
 
-	// If modifying these scopes, delete your previously saved token.json.
 	config, err := google.ConfigFromJSON(b, "https://www.googleapis.com/auth/spreadsheets")
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
@@ -82,43 +105,17 @@ func getUsersFromSheets(c *gin.Context) {
 		log.Fatalf("Unable to retrieve data from sheet: %v", err)
 	}
 
-	var users []userInput
 	for _, row := range resp.Values {
-		if len(row) >= 5 { // Ensure that there are enough columns in the row
+		if len(row) >= 5 {
 			user := userInput{
 				Name:          row[0].(string),
-				Age:           row[1].(string), // Assuming age is a number in the sheet
+				Age:           row[1].(string),
 				CommuteMethod: row[2].(string),
 				College:       row[3].(string),
 				Hobbies:       row[4].(string),
 			}
 			users = append(users, user)
 		}
-	}
-	if err != nil {
-		getUserError++
-		tags := map[string]string{
-			"endpoint": "getuser",
-		}
-		fields := map[string]interface{}{
-			"error_count": int64(getUserError),
-		}
-		err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
-		if err != nil {
-			fmt.Println("Error writing metric:", err)
-		}
-	}
-	latency := time.Since(startTime)
-	latencyMs := float64(latency.Nanoseconds()) / 1000000.0
-	tags2 := map[string]string{
-		"endpoint": "getuser",
-	}
-	fields2 := map[string]interface{}{
-		"latency": latencyMs,
-	}
-	err2 := influxdb.WriteMetric(influxClient, "REST", tags2, fields2)
-	if err2 != nil {
-		fmt.Println("Error writing latency metric:", err2)
 	}
 	c.IndentedJSON(http.StatusOK, users)
 }
@@ -127,15 +124,39 @@ func getUserFromSheetsbyName(c *gin.Context) {
 	startTime := time.Now()
 	getUserNameCount++
 	tags := map[string]string{
-		"endpoint": "getuser/name",
+		"endpoint":   "getuser/name",
+		"user_agent": c.Request.UserAgent(),
+		"ip_address": c.ClientIP(),
 	}
 	fields := map[string]interface{}{
 		"request_count": int64(getUserNameCount),
+		"request_size":  c.Request.ContentLength,
 	}
-	err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
-	if err != nil {
-		fmt.Println("Error writing metric:", err)
-	}
+
+	var user userInput
+	defer func() {
+		if r := recover(); r != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		}
+
+		if user.Name == "" {
+			getUserNameError++
+			fields["error_count"] = int64(getUserNameError)
+			fields["status_code"] = http.StatusNotFound
+		} else {
+			fields["status_code"] = http.StatusOK
+		}
+
+		fields["response_size"] = c.Writer.Size()
+
+		latency := time.Since(startTime)
+		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
+		fields["latency"] = latencyMs
+
+		if err := influxdb.WriteMetric(influxClient, "REST", tags, fields); err != nil {
+			fmt.Println("Error writing metrics:", err)
+		}
+	}()
 
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
@@ -144,7 +165,6 @@ func getUserFromSheetsbyName(c *gin.Context) {
 		return
 	}
 
-	// If modifying these scopes, delete your previously saved token.json.
 	config, err := google.ConfigFromJSON(b, "https://www.googleapis.com/auth/spreadsheets")
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Unable to parse client secret file to config"})
@@ -168,54 +188,26 @@ func getUserFromSheetsbyName(c *gin.Context) {
 	}
 
 	name := c.Param("name")
-	var user userInput
 	found := false
 
 	for _, row := range resp.Values {
-		if len(row) >= 5 {
-			if row[0].(string) == name {
-				user = userInput{
-					Name:          row[0].(string),
-					Age:           row[1].(string), // Assuming age is a string in the sheet
-					CommuteMethod: row[2].(string),
-					College:       row[3].(string),
-					Hobbies:       row[4].(string),
-				}
-				found = true
-				break
+		if len(row) >= 5 && row[0].(string) == name {
+			user = userInput{
+				Name:          row[0].(string),
+				Age:           row[1].(string),
+				CommuteMethod: row[2].(string),
+				College:       row[3].(string),
+				Hobbies:       row[4].(string),
 			}
+			found = true
+			break
 		}
 	}
 
-	if err != nil {
-		getUserNameError++
-		tags := map[string]string{
-			"endpoint": "getuser/name",
-		}
-		fields := map[string]interface{}{
-			"error_count": int64(getUserNameError),
-		}
-		err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
-		if err != nil {
-			fmt.Println("Error writing metric:", err)
-		}
-	}
-	latency := time.Since(startTime)
-	latencyMs := float64(latency.Nanoseconds()) / 1000000.0
-	tags2 := map[string]string{
-		"endpoint": "getuser/name",
-	}
-	fields2 := map[string]interface{}{
-		"latency": latencyMs,
-	}
-	err2 := influxdb.WriteMetric(influxClient, "REST", tags2, fields2)
-	if err2 != nil {
-		fmt.Println("Error writing latency metric:", err2)
-	}
 	if found {
 		c.IndentedJSON(http.StatusOK, user)
 	} else {
-		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "User not found"})
 	}
 }
 
@@ -223,34 +215,49 @@ func deleteUserFromSheets(c *gin.Context) {
 	startTime := time.Now()
 	deleteUserCount++
 	tags := map[string]string{
-		"endpoint": "deleteuser/name",
+		"endpoint":   "deleteuser/name",
+		"user_agent": c.Request.UserAgent(),
+		"ip_address": c.ClientIP(),
 	}
 	fields := map[string]interface{}{
 		"request_count": int64(deleteUserCount),
+		"request_size":  c.Request.ContentLength,
 	}
-	err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
-	if err != nil {
-		fmt.Println("Error writing metric:", err)
-	}
+
+	var status int
+	defer func() {
+		fields["response_size"] = c.Writer.Size()
+		fields["status_code"] = status
+
+		latency := time.Since(startTime)
+		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
+		fields["latency"] = latencyMs
+
+		if err := influxdb.WriteMetric(influxClient, "REST", tags, fields); err != nil {
+			fmt.Println("Error writing metrics:", err)
+		}
+	}()
 
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Unable to read client secret file"})
+		status = http.StatusInternalServerError
+		c.IndentedJSON(status, gin.H{"message": "Unable to read client secret file"})
 		return
 	}
 
-	// If modifying these scopes, delete your previously saved token.json.
 	config, err := google.ConfigFromJSON(b, "https://www.googleapis.com/auth/spreadsheets")
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Unable to parse client secret file to config"})
+		status = http.StatusInternalServerError
+		c.IndentedJSON(status, gin.H{"message": "Unable to parse client secret file to config"})
 		return
 	}
 	client := getClient(config)
 
 	srv, err := sheets.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Unable to retrieve Sheets client"})
+		status = http.StatusInternalServerError
+		c.IndentedJSON(status, gin.H{"message": "Unable to retrieve Sheets client"})
 		return
 	}
 
@@ -259,7 +266,8 @@ func deleteUserFromSheets(c *gin.Context) {
 
 	resp, err := srv.Spreadsheets.Values.Get(spreadsheetID, readRange).Do()
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Unable to retrieve data from Google Sheets"})
+		status = http.StatusInternalServerError
+		c.IndentedJSON(status, gin.H{"message": "Unable to retrieve data from Google Sheets"})
 		return
 	}
 
@@ -268,18 +276,15 @@ func deleteUserFromSheets(c *gin.Context) {
 	found := false
 
 	for rowIndex, row := range resp.Values {
-		if len(row) >= 5 {
-			if row[0].(string) == name {
-				userRowIndex = rowIndex
-				found = true
-				break
-			}
+		if len(row) >= 5 && row[0].(string) == name {
+			userRowIndex = rowIndex
+			found = true
+			break
 		}
 	}
 
-	rowToDelete := userRowIndex + 1
-
 	if found {
+		rowToDelete := userRowIndex + 1
 		deleteRequest := sheets.DeleteDimensionRequest{
 			Range: &sheets.DimensionRange{
 				SheetId:    getSheetID(spreadsheetID, "Sheet1", srv),
@@ -289,50 +294,27 @@ func deleteUserFromSheets(c *gin.Context) {
 			},
 		}
 
-		// Execute the request to delete the row.
 		_, err = srv.Spreadsheets.BatchUpdate(spreadsheetID, &sheets.BatchUpdateSpreadsheetRequest{
 			Requests: []*sheets.Request{
-				&sheets.Request{
-					DeleteDimension: &deleteRequest,
-				},
+				{DeleteDimension: &deleteRequest},
 			},
 		}).Context(ctx).Do()
 
 		if err != nil {
 			deleteUserError++
-			tags := map[string]string{
-				"endpoint": "deleteuser/name",
-			}
-			fields := map[string]interface{}{
-				"error_count": int64(deleteUserError),
-			}
-			err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
-			if err != nil {
-				fmt.Println("Error writing metric:", err)
-			}
+			fields["error_count"] = int64(deleteUserError)
+			status = http.StatusInternalServerError
+			log.Printf("Error deleting row: %v", err)
+			c.IndentedJSON(status, gin.H{"message": "Error deleting user"})
+			return
 		}
 
-		if err != nil {
-			log.Fatalf("Error deleting row: %v", err)
-		}
-
+		status = http.StatusOK
 		fmt.Printf("Row %d deleted successfully.\n", rowToDelete)
-		latency := time.Since(startTime)
-		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
-		tags2 := map[string]string{
-			"endpoint": "deleteuser/name",
-		}
-		fields2 := map[string]interface{}{
-			"latency": latencyMs,
-		}
-		err2 := influxdb.WriteMetric(influxClient, "REST", tags2, fields2)
-		if err2 != nil {
-			fmt.Println("Error writing latency metric:", err2)
-		}
-
-		c.IndentedJSON(http.StatusOK, gin.H{"message": "user deleted"})
+		c.IndentedJSON(status, gin.H{"message": "User deleted"})
 	} else {
-		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		status = http.StatusNotFound
+		c.IndentedJSON(status, gin.H{"message": "User not found"})
 	}
 }
 
@@ -357,34 +339,49 @@ func updateUserInSheets(c *gin.Context) {
 	startTime := time.Now()
 	updateUserCount++
 	tags := map[string]string{
-		"endpoint": "updateuser/name",
+		"endpoint":   "updateuser/name",
+		"user_agent": c.Request.UserAgent(),
+		"ip_address": c.ClientIP(),
 	}
 	fields := map[string]interface{}{
 		"request_count": int64(updateUserCount),
+		"request_size":  c.Request.ContentLength,
 	}
-	err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
-	if err != nil {
-		fmt.Println("Error writing metric:", err)
-	}
+
+	var status int
+	defer func() {
+		fields["response_size"] = c.Writer.Size()
+		fields["status_code"] = status
+
+		latency := time.Since(startTime)
+		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
+		fields["latency"] = latencyMs
+
+		if err := influxdb.WriteMetric(influxClient, "REST", tags, fields); err != nil {
+			fmt.Println("Error writing metrics:", err)
+		}
+	}()
 
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Unable to read client secret file"})
+		status = http.StatusInternalServerError
+		c.IndentedJSON(status, gin.H{"message": "Unable to read client secret file"})
 		return
 	}
 
-	// If modifying these scopes, delete your previously saved token.json.
 	config, err := google.ConfigFromJSON(b, "https://www.googleapis.com/auth/spreadsheets")
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Unable to parse client secret file to config"})
+		status = http.StatusInternalServerError
+		c.IndentedJSON(status, gin.H{"message": "Unable to parse client secret file to config"})
 		return
 	}
 	client := getClient(config)
 
 	srv, err := sheets.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Unable to retrieve Sheets client"})
+		status = http.StatusInternalServerError
+		c.IndentedJSON(status, gin.H{"message": "Unable to retrieve Sheets client"})
 		return
 	}
 
@@ -393,7 +390,8 @@ func updateUserInSheets(c *gin.Context) {
 
 	resp, err := srv.Spreadsheets.Values.Get(spreadsheetID, readRange).Do()
 	if err != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Unable to retrieve data from Google Sheets"})
+		status = http.StatusInternalServerError
+		c.IndentedJSON(status, gin.H{"message": "Unable to retrieve data from Google Sheets"})
 		return
 	}
 
@@ -402,24 +400,24 @@ func updateUserInSheets(c *gin.Context) {
 	found := false
 
 	for rowIndex, row := range resp.Values {
-		if len(row) >= 5 {
-			if row[0].(string) == name {
-				userRowIndex = rowIndex
-				found = true
-				break
-			}
+		if len(row) >= 5 && row[0].(string) == name {
+			userRowIndex = rowIndex
+			found = true
+			break
 		}
 	}
 
 	if !found {
-		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		status = http.StatusNotFound
+		c.IndentedJSON(status, gin.H{"message": "User not found"})
 		return
 	}
 
 	// Extract the updated user data from the request body
 	var updatedUser userInput
 	if err := c.BindJSON(&updatedUser); err != nil {
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "invalid JSON data"})
+		status = http.StatusBadRequest
+		c.IndentedJSON(status, gin.H{"message": "Invalid JSON data"})
 		return
 	}
 
@@ -435,85 +433,61 @@ func updateUserInSheets(c *gin.Context) {
 	_, err = srv.Spreadsheets.Values.Update(spreadsheetID, writeRange, vr).ValueInputOption("RAW").Do()
 	if err != nil {
 		updateUserError++
-		tags := map[string]string{
-			"endpoint": "updateuser/name",
-		}
-		fields := map[string]interface{}{
-			"error_count": int64(updateUserError),
-		}
-		err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
-		if err != nil {
-			fmt.Println("Error writing metric:", err)
-		}
-	}
-	if err != nil {
+		fields["error_count"] = int64(updateUserError)
+		status = http.StatusInternalServerError
 		log.Printf("Error updating user in Google Sheets: %v", err)
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Unable to update user in Google Sheets"})
+		c.IndentedJSON(status, gin.H{"message": "Unable to update user in Google Sheets"})
 		return
 	}
-	latency := time.Since(startTime)
-	latencyMs := float64(latency.Nanoseconds()) / 1000000.0
-	tags2 := map[string]string{
-		"endpoint": "updateuser/name",
-	}
-	fields2 := map[string]interface{}{
-		"latency": latencyMs,
-	}
-	err2 := influxdb.WriteMetric(influxClient, "REST", tags2, fields2)
-	if err2 != nil {
-		fmt.Println("Error writing latency metric:", err2)
-	}
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "user updated"})
+
+	status = http.StatusOK
+	c.IndentedJSON(status, gin.H{"message": "User updated"})
 }
 
 func addUser(context *gin.Context) {
 	startTime := time.Now()
 	addUserCount++
 	tags := map[string]string{
-		"endpoint": "adduser",
+		"endpoint":   "adduser",
+		"user_agent": context.Request.UserAgent(),
+		"ip_address": context.ClientIP(),
 	}
 	fields := map[string]interface{}{
 		"request_count": int64(addUserCount),
-	}
-	err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
-	if err != nil {
-		fmt.Println("Error writing metric:", err)
+		"request_size":  context.Request.ContentLength,
 	}
 
 	var newUser userInput
+	var status int
+
+	defer func() {
+		fields["response_size"] = context.Writer.Size()
+		fields["status_code"] = status
+
+		latency := time.Since(startTime)
+		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
+		fields["latency"] = latencyMs
+
+		if err := influxdb.WriteMetric(influxClient, "REST", tags, fields); err != nil {
+			fmt.Println("Error writing metrics:", err)
+		}
+	}()
 
 	if err := context.BindJSON(&newUser); err != nil {
+		status = http.StatusBadRequest
+		context.IndentedJSON(status, gin.H{"message": "Invalid JSON data"})
 		return
 	}
 	if err := addUsertoGoogleSheets(newUser); err != nil {
 		addUserError++
-		tags := map[string]string{
-			"endpoint": "adduser",
-		}
-		fields := map[string]interface{}{
-			"error_count": int64(addUserError),
-		}
-		err := influxdb.WriteMetric(influxClient, "REST", tags, fields)
-		if err != nil {
-			fmt.Println("Error writing metric:", err)
-		}
-		context.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Failed to store data in Google Sheets"})
+		fields["error_count"] = int64(addUserError)
+		status = http.StatusInternalServerError
+		context.IndentedJSON(status, gin.H{"message": "Failed to store data in Google Sheets"})
 		return
 	}
 
-	latency := time.Since(startTime)
-	latencyMs := float64(latency.Nanoseconds()) / 1000000.0
-	tags2 := map[string]string{
-		"endpoint": "adduser",
-	}
-	fields2 := map[string]interface{}{
-		"latency": latencyMs,
-	}
-	err2 := influxdb.WriteMetric(influxClient, "REST", tags2, fields2)
-	if err2 != nil {
-		fmt.Println("Error writing latency metric:", err2)
-	}
-	context.IndentedJSON(http.StatusCreated, newUser)
+	status = http.StatusCreated
+	context.IndentedJSON(status, newUser)
 }
 
 // These functions are used for the google sheets API
@@ -608,8 +582,9 @@ func addUsertoGoogleSheets(user userInput) error {
 
 	return nil
 }
+
 func registerWithRegistry(name, host string, port int, servType string) {
-	registryURL := "http://localhost:8090/register"
+	registryURL := "ws://localhost:8090/register" // WebSocket URL
 	registrationData := Registration{
 		Name: name,
 		Host: host,
@@ -623,19 +598,35 @@ func registerWithRegistry(name, host string, port int, servType string) {
 		return
 	}
 
-	resp, err := http.Post(registryURL, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		fmt.Println("Error sending registration request:", err)
-		return
-	}
-	defer resp.Body.Close()
+	ticker := time.NewTicker(10 * time.Second) // Retry every 10 seconds
+	defer ticker.Stop()
 
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("Received non-OK response from registry: %d\n", resp.StatusCode)
-		return
-	}
+	for {
+		c, _, err := websocket.DefaultDialer.Dial(registryURL, nil)
+		if err != nil {
+			fmt.Println("Error connecting to WebSocket, retrying...:", err)
+		} else {
+			// Successfully connected, send registration data
+			err = c.WriteMessage(websocket.TextMessage, jsonData)
+			if err != nil {
+				fmt.Println("Error sending registration data, retrying...:", err)
+			} else {
+				// Read response
+				_, message, err := c.ReadMessage()
+				if err != nil {
+					fmt.Println("Error reading response, retrying...:", err)
+				} else {
+					fmt.Printf("Response from server: %s\n", message)
+					c.Close()
+					break // Exit the loop if registration is successful
+				}
+			}
+			c.Close() // Close the connection in case of any error
+		}
 
-	fmt.Println("Service successfully registered with registry")
+		// Wait for the next tick before retrying
+		<-ticker.C
+	}
 }
 
 type Registration struct {
@@ -652,7 +643,7 @@ func main() {
 	serviceType := "REST"
 
 	// Register your service with the registry
-	registerWithRegistry(serviceName, serviceHost, servicePort, serviceType)
+	go registerWithRegistry(serviceName, serviceHost, servicePort, serviceType)
 
 	//initialize the router using gin
 	router := gin.Default()
