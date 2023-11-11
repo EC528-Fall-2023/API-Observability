@@ -212,6 +212,25 @@ const DataTable = () => {
     setSelectedGraphTypes(typeof value === 'string' ? value.split(',') : value);
   };
 
+  const getGraphTypesAsString = () => {
+    // Gets all graph types selected and turns to string for Graph Title
+    const capitalizeWords = (str) => {
+      return str.replace(/_/g, ' ')
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    };
+  
+    let formattedString;
+    if (Array.isArray(selectedGraphTypes)) {
+      formattedString = selectedGraphTypes.map(capitalizeWords).join(', ');
+    } else {
+      formattedString = capitalizeWords(selectedGraphTypes);
+    }
+  
+    return `${formattedString} Chart`;
+  };
+
   useEffect(() => {
     if (selectedRow != null) {
       const selectedRowData = data.find(row => row.path === selectedRow);
@@ -391,7 +410,7 @@ const DataTable = () => {
                               </FormControl>
                               </div>
                         <div style={{ flex: 2 }}>
-                        <LineChart dataSets={graphdata} title="Graph Title" />
+                        <LineChart dataSets={graphdata} title={getGraphTypesAsString()} />
                         </div>
                       </div>
                     </Collapse>
