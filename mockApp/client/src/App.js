@@ -28,7 +28,7 @@ function App() {
 
     const objt = { name, age, commute_method, college, hobbies };
     //const apiUrl = apiMode === 'REST' ? 'http://localhost:4000/adduser' : 'https://sheet.best/api/sheets/ab206fd6-ee69-4b1d-a56f-f29c0ba70176';
-    const apiUrl = apiMode === 'REST' ? 'https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/adduser' : 'https://sheet.best/api/sheets/ab206fd6-ee69-4b1d-a56f-f29c0ba70176';
+    const apiUrl = apiMode === 'REST' ? 'https://rest-envoy-necuf5ddgq-ue.a.run.app/adduser' : 'https://sheet.best/api/sheets/ab206fd6-ee69-4b1d-a56f-f29c0ba70176';
     //https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/
 
     axios.post(apiUrl, objt).then((response) => {
@@ -46,7 +46,7 @@ function App() {
     axios
         .put(
             //`http://localhost:4000/updateuser/${name}`, // Update with your Go server route
-            'https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/updateuser/${name}',
+            'https://rest-envoy-necuf5ddgq-ue.a.run.app/updateuser/${name}',
             objt
         )
         .then((response) => {
@@ -61,7 +61,7 @@ function App() {
   
     // Perform the search using the name in the state
     //axios.get(`http://localhost:4000/getuser/${name}`)
-    axios.get(`https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/getuser/${name}`)
+    axios.get(`https://rest-envoy-necuf5ddgq-ue.a.run.app/getuser/${name}`)
       .then((response) => {
         setAPIdata([response.data]); // Wrap the response data in an array
         // Add logic to handle the search response
@@ -78,7 +78,7 @@ function App() {
 
     // Fetch all data from the server and reset the APIdata state
     //axios.get('http://localhost:4000/getuser')
-    axios.get('https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/getuser')
+    axios.get('https://rest-envoy-necuf5ddgq-ue.a.run.app/getuser')
       .then((incomingData) => {
         setAPIdata(incomingData.data);
       })
@@ -92,8 +92,8 @@ function App() {
   const handleDelete = (e) => {
     e.preventDefault();
 
-    //const apiUrl = `http://localhost:4000/deleteuser/${name}`; // Update with your Go server route
-    const apiUrl = `https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/deleteuser/${name}`; // Update with your Go server route
+    const apiUrl = `http://localhost:4000/deleteuser/${name}`; // Update with your Go server route
+    //const apiUrl = `https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/deleteuser/${name}`; // Update with your Go server route
     axios
         .post(apiUrl)
         .then((response) => {
@@ -112,8 +112,8 @@ function App() {
         return;
       }
       //setUser(response.toObject());
-      //setAPIdata([response.data]);
-      setAPIdata([response.toObject()]);
+      setAPIdata([response.data]);
+      //setAPIdata([response.toObject()]);
     });
   };
 
