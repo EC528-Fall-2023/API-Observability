@@ -9,7 +9,7 @@ import './index.css';
 function App() {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
-  const [commute_method, setcommute_method] = useState('');
+  const [commuteMethod, setcommuteMethod] = useState('');
   const [college, setCollege] = useState('');
   const [hobbies, setHobbies] = useState('');
   const [APIdata, setAPIdata] = useState([]);
@@ -26,7 +26,7 @@ function App() {
   const handleSubmit = (e = { preventDefault: () => {} }) => {
     e.preventDefault();
 
-    const objt = { name, age, commute_method, college, hobbies };
+    const objt = { name, age, commuteMethod, college, hobbies };
     //const apiUrl = apiMode === 'REST' ? 'http://localhost:4000/adduser' : 'https://sheet.best/api/sheets/ab206fd6-ee69-4b1d-a56f-f29c0ba70176';
     const apiUrl = apiMode === 'REST' ? 'https://rest-envoy-necuf5ddgq-ue.a.run.app/adduser' : 'https://sheet.best/api/sheets/ab206fd6-ee69-4b1d-a56f-f29c0ba70176';
     //https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/
@@ -41,12 +41,12 @@ function App() {
   const handleUpdate = (e = { preventDefault: () => {} }) => {
     e.preventDefault();
 
-    const objt = { name, age, commute_method, college, hobbies };
-
+    const objt = { name, age, commuteMethod, college, hobbies };
+    //`http://localhost:4000/updateuser/${name}`, // Update with your Go server route
+    
     axios
         .put(
-            //`http://localhost:4000/updateuser/${name}`, // Update with your Go server route
-            'https://rest-envoy-necuf5ddgq-ue.a.run.app/updateuser/${name}',
+            `https://rest-envoy-necuf5ddgq-ue.a.run.app/updateuser/${name}`,
             objt
         )
         .then((response) => {
@@ -63,6 +63,7 @@ function App() {
     //axios.get(`http://localhost:4000/getuser/${name}`)
     axios.get(`https://rest-envoy-necuf5ddgq-ue.a.run.app/getuser/${name}`)
       .then((response) => {
+        console.log(response.data);
         setAPIdata([response.data]); // Wrap the response data in an array
         // Add logic to handle the search response
       })
@@ -73,14 +74,18 @@ function App() {
   };
   
 
-  //const handleAll = () => {
   const handleAll  = (e = { preventDefault: () => {} }) => {
-
     // Fetch all data from the server and reset the APIdata state
     //axios.get('http://localhost:4000/getuser')
     axios.get('https://rest-envoy-necuf5ddgq-ue.a.run.app/getuser')
       .then((incomingData) => {
-        setAPIdata(incomingData.data);
+        if (Array.isArray(incomingData.data) && incomingData.data.length > 0) {
+          // Exclude the first row (header) and update the state
+          setAPIdata(incomingData.data.slice(1));
+        } else {
+          // Handle the case where data is not as expected
+          console.error('Received data is not in expected array format');
+        }
       })
       .catch((error) => {
         console.error('Error fetching all data:', error);
@@ -89,11 +94,10 @@ function App() {
   };
 
 
-  const handleDelete = (e) => {
+  const handleDelete = (e = { preventDefault: () => {} }) => {
     e.preventDefault();
 
-    const apiUrl = `http://localhost:4000/deleteuser/${name}`; // Update with your Go server route
-    //const apiUrl = `https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/deleteuser/${name}`; // Update with your Go server route
+    const apiUrl = `https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/deleteuser/${name}`; // Update with your Go server route
     axios
         .post(apiUrl)
         .then((response) => {
@@ -112,8 +116,9 @@ function App() {
         return;
       }
       //setUser(response.toObject());
-      setAPIdata([response.data]);
-      //setAPIdata([response.toObject()]);
+      //setAPIdata([response.data]);
+      setAPIdata([response.toObject()]);
+      //console.log(request.data);
     });
   };
 
@@ -122,7 +127,7 @@ function App() {
     let userMessage = new User();
     userMessage.setName(name);
     userMessage.setAge(age);  // Assuming User has a setAge method
-    userMessage.setCommutemethod(commute_method); // and so on for other fields...
+    userMessage.setCommutemethod(commuteMethod); // and so on for other fields...
     userMessage.setCollege(college);
     userMessage.setHobbies(hobbies);
   
@@ -140,7 +145,7 @@ function App() {
       // Reset the form fields after successful creation
       setName('');
       setAge('');
-      setcommute_method('');
+      setcommuteMethod('');
       setCollege('');
       setHobbies('');
     });
@@ -153,7 +158,7 @@ function App() {
     let userMessage = new User();
     userMessage.setName(name)
     userMessage.setAge(age); // Assuming User has a setAge method
-    userMessage.setCommutemethod(commute_method); // and so on for other fields...
+    userMessage.setCommutemethod(commuteMethod); // and so on for other fields...
     userMessage.setCollege(college);
     userMessage.setHobbies(hobbies);
     
@@ -193,35 +198,35 @@ function App() {
     });
   };
 
-  const handleSubmitChoice = () => {
+  const handleSubmitChoice = (e) => {
     if (apiMode === 'REST') {
-      handleSubmit();
+      handleSubmit(e);
     } else {
-      handleCreateUser();
+      handleCreateUser(e);
     }
   };
 
-  const handleUpdateChoice = () => {
+  const handleUpdateChoice = (e) => {
     if (apiMode === 'REST') {
-      handleUpdate();
+      handleUpdate(e);
     } else {
-      handleUpdateUser();
+      handleUpdateUser(e);
     }
   };
 
-  const handleDeleteChoice = () => {
+  const handleDeleteChoice = (e) => {
     if (apiMode === 'REST') {
-      handleDelete();
+      handleDelete(e);
     } else {
-      handleDeleteUser();
+      handleDeleteUser(e);
     }
   };
 
-  const handleSearchChoice = () => {
+  const handleSearchChoice = (e) => {
     if (apiMode === 'REST') {
-      handleSearch();
+      handleSearch(e);
     } else {
-      handleGetUser();
+      handleGetUser(e);
     }
   };
 
@@ -263,7 +268,7 @@ function App() {
             <label>Commute Method</label>
             <input
                 placeholder="How do you commute to college?"
-                onChange={(e) => setcommute_method(e.target.value)}
+                onChange={(e) => setcommuteMethod(e.target.value)}
             />
           </Form.Field>
           <Form.Field>
@@ -312,7 +317,7 @@ function App() {
               <Table.Row key={index}>
                 <Table.Cell>{data.name}</Table.Cell>
                 <Table.Cell>{data.age}</Table.Cell>
-                <Table.Cell>{data.commute_method}</Table.Cell>
+                <Table.Cell>{data.commuteMethod}</Table.Cell>
                 <Table.Cell>{data.college}</Table.Cell>
                 <Table.Cell>{data.hobbies}</Table.Cell>
               </Table.Row>
