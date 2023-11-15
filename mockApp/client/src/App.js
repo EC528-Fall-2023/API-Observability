@@ -118,7 +118,7 @@ function App() {
       //setUser(response.toObject());
       //setAPIdata([response.data]);
       setAPIdata([response.toObject()]);
-      //console.log(request.data);
+      console.log(request);
     });
   };
 
@@ -317,7 +317,7 @@ function App() {
               <Table.Row key={index}>
                 <Table.Cell>{data.name}</Table.Cell>
                 <Table.Cell>{data.age}</Table.Cell>
-                <Table.Cell>{data.commuteMethod}</Table.Cell>
+                <Table.Cell>{data.commuteMethod || data.commutemethod}</Table.Cell>
                 <Table.Cell>{data.college}</Table.Cell>
                 <Table.Cell>{data.hobbies}</Table.Cell>
               </Table.Row>
