@@ -143,11 +143,11 @@ function App() {
       }
       alert('User successfully created!');
       // Reset the form fields after successful creation
-      setName('');
-      setAge('');
-      setcommuteMethod('');
-      setCollege('');
-      setHobbies('');
+      //setName('');
+      //setAge('');
+      //setcommuteMethod('');
+      //setCollege('');
+      //setHobbies('');
     });
   };
 
