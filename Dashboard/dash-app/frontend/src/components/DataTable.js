@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Collapse, Box,Typography,MenuItem, Select, InputLabel, FormControl, OutlinedInput, Checkbox, ListItemText  } from '@mui/material';
 import { styled } from '@mui/system';
+import CircularProgress from '@mui/material/CircularProgress';
 import { useEffect } from 'react';
 import LineChart from './LineChart'
 import TopGraph from './TopGraph'
@@ -10,12 +11,23 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   backgroundColor: '#F0F0F0',
   padding: '10px',
 }));
+
+const StatusIndicator = styled('div')(({ isFetching }) => ({
+  width: '15px',
+  height: '15px',
+  marginRight:'5px',
+  marginTop:'3px',
+  borderRadius: '50%',
+  backgroundColor: isFetching ? 'green' : 'red',
+}));
+
+
 const StyledButton = styled(Button)(({ theme, requestType }) => {
   let backgroundColor;
   let hoverColor;
 
   switch (requestType) {
-    case 'GET':
+    case 'Up':
       backgroundColor = '#4CAF50'; // Green shade for GET
       hoverColor = '#45a049';
       break;
@@ -27,13 +39,14 @@ const StyledButton = styled(Button)(({ theme, requestType }) => {
       backgroundColor = '#FFC107'; // Yellow shade for PUT
       hoverColor = '#e6a800';
       break;
-    case 'DELETE':
+    case 'Down':
       backgroundColor = '#f44336'; // Red shade for DELETE
       hoverColor = '#da190b';
       break;
-    default:
-      backgroundColor = theme.palette.primary.main;
-      hoverColor = theme.palette.primary.dark;
+    case 'gRPC':
+      backgroundColor = '#90c9ff'; // Blue shade for POST
+      hoverColor = '#0b7dda';
+    break;
   }
 
   return {
@@ -86,6 +99,9 @@ const styles = {
   dashboardValue: {
     color: '#333', // darker color for value
     fontWeight: 'bold', // bold font for value
+  },
+  statusdiv:{
+    display: 'flex', justifyContent: 'center', marginTop: '10px' 
   }
 };
 
@@ -194,6 +210,7 @@ const DataTable = () => {
   const [selectedGraphTypes, setSelectedGraphTypes] = useState([]);
   const [graphdata, setGraphdata] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [isFetching, setIsFetching] = useState(false);
 
   const [uptime, setUptime] = useState(0);
 
@@ -223,6 +240,7 @@ const DataTable = () => {
   
     let formattedString;
     if (Array.isArray(selectedGraphTypes)) {
+
       formattedString = selectedGraphTypes.map(capitalizeWords).join(', ');
     } else {
       formattedString = capitalizeWords(selectedGraphTypes);
@@ -249,7 +267,30 @@ const DataTable = () => {
   }, [selectedGraphTypes, selectedRow, data]);
   
   
-  console.log(graphdata)
+   // Fetch count of WebSocket entries from the backend
+   useEffect(() => {
+    const fetchWebSocketEntriesCount = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/websocket-entries-count');
+        if (response.ok) {
+          const data = await response.json();
+          setReg(data.count); // Update the count state
+        } else {
+          console.error('Failed to fetch WebSocket entries count:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching WebSocket entries count:', error);
+      }
+    };
+
+    fetchWebSocketEntriesCount();
+    const intervalId = setInterval(fetchWebSocketEntriesCount, 10000); // Refresh every 10 seconds
+
+    return () => clearInterval(intervalId); // Cleanup interval on component unmount
+  }, []);
+
+
+  //console.log(graphdata)
 
   useEffect(() => {
   
@@ -258,13 +299,16 @@ const DataTable = () => {
           const response = await fetch('http://localhost:3001/data/explorer');
           if (response.ok) {
               const fetchedData = await response.json();  // Rename to fetchedData to avoid shadowing
+              setIsFetching(true);
               const convertedData = convertBackendDataToMockFormat(fetchedData); 
               setData(convertedData);
           } else {
               console.error('Failed to fetch data:', response.statusText);
+              setIsFetching(false);
           }
       } catch (error) {
           console.error('Error fetching data:', error);
+          setIsFetching(false);
       }
   };
   
@@ -294,32 +338,35 @@ const DataTable = () => {
           timestamp: entry.timestamp,
           count: entry.count,
           request_rate: entry.request_rate,
-          response_rate: entry.response_rate
+          response_rate: entry.response_rate,
+          error_rate: entry.error_count,
+          response_size: entry.response_size,
+          request_size:entry.request_size,
+          status:entry.status
+
         };
       });
 
       if (latestEntry.status === 'Online') {
         onlineCount++; // Increment online APIs count
-        registeredCount++;
       }
-      else{
-        registeredCount++;
-      }
-      console.log(onlineCount)
+
+      //console.log(onlineCount)
       
 
 
       newData.push({
-        type: 'GET',  // hardcoded as per your requirement
-        protocol: 'REST',  // hardcoded as per your requirement
+        type: latestEntry.status,  // hardcoded as per your requirement
+        protocol: latestEntry.protocol,  // hardcoded as per your requirement
         path: path,
         details: {
           timestamp: latestEntry.timestamp,
           counter: latestEntry.count,  // using mockData as default if no data from backend
           responseRate: latestEntry.response_rate,
-          errorRate: 72,
+          errorRate: latestEntry.error_count,
           requestRate: latestEntry.request_rate,
-          payloadSize: 2.7,
+          responseSize: latestEntry.response_size,
+          requestSize:latestEntry.request_size,
           status:latestEntry.status
         },
         variables: [
@@ -331,7 +378,7 @@ const DataTable = () => {
     // setOnlineAPIs(onlineCount);
     // setRegisteredAPIs(registeredCount);
     setOnline(onlineCount);
-    setReg(registeredCount);
+    //setReg(registeredCount);
     return newData;
   }
 
@@ -342,8 +389,11 @@ const DataTable = () => {
       <div style={styles.dashboardRow}>
       <DashboardInfo label="Uptime:" value={formatTime(uptime)} />
       <DashboardInfo label="Online APIs:" value={onlineAPI} />
-      <DashboardInfo label="Registered APIs:" value={regAPI} />
-    </div>
+      <DashboardInfo label="Registered API Services:" value={regAPI} />
+      </div>
+      <div style={styles.statusdiv}>
+      <StatusIndicator isFetching={isFetching} /> {'Connection Status'} 
+      </div>
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 400 }} aria-label="customized table">
           <TableHead>
@@ -353,9 +403,10 @@ const DataTable = () => {
               <StyledTableCell>PATH</StyledTableCell>
               <StyledTableCell>COUNTER (Requests)</StyledTableCell>
               <StyledTableCell>RESPONSE RATE (s)</StyledTableCell>
-              <StyledTableCell>ERROR RATE (%)</StyledTableCell>
+              <StyledTableCell>ERROR COUNT </StyledTableCell>
               <StyledTableCell>REQUEST RATE (req/min)</StyledTableCell>
-              <StyledTableCell>PAYLOAD SIZE (KB)</StyledTableCell>
+              <StyledTableCell>REQUEST SIZE (KB)</StyledTableCell>
+              <StyledTableCell>RESPONSE SIZE (KB)</StyledTableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -380,15 +431,16 @@ const DataTable = () => {
                   <TableCell>{row.details.responseRate}</TableCell>
                   <TableCell>{row.details.errorRate}</TableCell>
                   <TableCell>{row.details.requestRate}</TableCell>
-                  <TableCell>{row.details.payloadSize}</TableCell>
+                  <TableCell>{row.details.requestSize}</TableCell>
+                  <TableCell>{row.details.responseSize}</TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell colSpan={8}>
                     <Collapse in={openRow === row.path} timeout="auto" unmountOnExit>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', height: '100%' }}>
-                        <div style={{ flex: 1, paddingRight: '5%', paddingLeft: '10%', width: '100%' }}>
+                      <div style={{ display: 'block', justifyContent: 'space-between', width: '100%', height: '100%' }}>
+                        {/* <div style={{ flex: 1, paddingRight: '5%', paddingLeft: '10%', width: '100%' }}>
                           <DetailedInfo variables={row.variables} />
-                        </div>
+                        </div> */}
                         <div><FormControl sx={{ m: 1, width: 300 }}>
                                 <InputLabel id="multiple-checkbox-label">Graph Types</InputLabel>
                                 <Select
@@ -400,7 +452,7 @@ const DataTable = () => {
                                   input={<OutlinedInput label="Graph Types" />}
                                   renderValue={(selected) => selected.join(', ')}
                                 >
-                                  {['response_rate', 'count', /* other types */].map((type) => (
+                                  {['response_rate', 'count','request_rate','error_rate', 'response_size', 'request_size' /* other types */].map((type) => (
                                     <MenuItem key={type} value={type}>
                                       <Checkbox checked={selectedGraphTypes.indexOf(type) > -1} />
                                       <ListItemText primary={type} />
@@ -409,7 +461,7 @@ const DataTable = () => {
                                 </Select>
                               </FormControl>
                               </div>
-                        <div style={{ flex: 2 }}>
+                        <div style={{ flex: 1 }}>
                         <LineChart dataSets={graphdata} title={getGraphTypesAsString()} />
                         </div>
                       </div>
