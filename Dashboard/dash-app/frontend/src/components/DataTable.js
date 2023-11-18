@@ -107,72 +107,72 @@ const styles = {
 
 
 
-const mockData = [
-  {
-    type: 'POST',
-    protocol: 'REST',
-    path: '/adduser',
-    details: {
-      counter: 400,
-      responseRate: 2.73,
-      errorRate: 12,
-      requestRate: 120,
-      payloadSize: 2.5
-    },
-    variables: [
-      { name: 'NAME', type: 'string', description: 'Name of User' },
-      { name: 'AGE', type: 'integer', description: 'Age of User' },
-      { name: 'COLLEGE', type: 'string', description: 'College Attended' },
-      { name: 'COMMUTE', type: 'string', description: 'Method of Commute' },
-      { name: 'HOBBY', type: 'string', description: 'Favorite Hobby' }
-    ]
-  },
-  {
-    type: 'PUT',
-    protocol: 'REST',
-    path: '/updateuser/:name',
-    details: {
-      counter: 365,
-      responseRate: 4.53,
-      errorRate: 17,
-      requestRate: 110,
-      payloadSize: 1.9
-    },
-    variables: [
-      { name: 'NAME', type: 'string', description: 'Name of User' }
-    ]
-  },
-  {
-    type: 'DELETE',
-    protocol: 'REST',
-    path: '/deleteuser/:name',
-    details: {
-      counter: 101,
-      responseRate: 0.73,
-      errorRate: 2,
-      requestRate: 135,
-      payloadSize: 3.3
-    },
-    variables: [
-      { name: 'NAME', type: 'string', description: 'Name of User' }
-    ]
-  },
-  {
-    type: 'GET',
-    protocol: 'REST',
-    path: '/getuser/:name',
-    details: {
-      counter: 234,
-      responseRate: 1.64,
-      errorRate: 9,
-      requestRate: 186,
-      payloadSize: 2.4
-    },
-    variables: [
-      { name: 'NAME', type: 'string', description: 'Name of User' }
-    ]
-  }
-];
+// const mockData = [
+//   {
+//     type: 'POST',
+//     protocol: 'REST',
+//     path: '/adduser',
+//     details: {
+//       counter: 400,
+//       responseRate: 2.73,
+//       errorRate: 12,
+//       requestRate: 120,
+//       payloadSize: 2.5
+//     },
+//     variables: [
+//       { name: 'NAME', type: 'string', description: 'Name of User' },
+//       { name: 'AGE', type: 'integer', description: 'Age of User' },
+//       { name: 'COLLEGE', type: 'string', description: 'College Attended' },
+//       { name: 'COMMUTE', type: 'string', description: 'Method of Commute' },
+//       { name: 'HOBBY', type: 'string', description: 'Favorite Hobby' }
+//     ]
+//   },
+//   {
+//     type: 'PUT',
+//     protocol: 'REST',
+//     path: '/updateuser/:name',
+//     details: {
+//       counter: 365,
+//       responseRate: 4.53,
+//       errorRate: 17,
+//       requestRate: 110,
+//       payloadSize: 1.9
+//     },
+//     variables: [
+//       { name: 'NAME', type: 'string', description: 'Name of User' }
+//     ]
+//   },
+//   {
+//     type: 'DELETE',
+//     protocol: 'REST',
+//     path: '/deleteuser/:name',
+//     details: {
+//       counter: 101,
+//       responseRate: 0.73,
+//       errorRate: 2,
+//       requestRate: 135,
+//       payloadSize: 3.3
+//     },
+//     variables: [
+//       { name: 'NAME', type: 'string', description: 'Name of User' }
+//     ]
+//   },
+//   {
+//     type: 'GET',
+//     protocol: 'REST',
+//     path: '/getuser/:name',
+//     details: {
+//       counter: 234,
+//       responseRate: 1.64,
+//       errorRate: 9,
+//       requestRate: 186,
+//       payloadSize: 2.4
+//     },
+//     variables: [
+//       { name: 'NAME', type: 'string', description: 'Name of User' }
+//     ]
+//   }
+// ];
 
 
 // Helper function to format time from seconds to HH:MM:SS
@@ -347,7 +347,7 @@ const DataTable = () => {
         };
       });
 
-      if (latestEntry.status === 'Online') {
+      if (latestEntry.status === 'Up') {
         onlineCount++; // Increment online APIs count
       }
 
@@ -375,7 +375,7 @@ const DataTable = () => {
         history: historyData
       });
     }
-    // setOnlineAPIs(onlineCount);
+    //setOnlineAPIs(onlineCount);
     // setRegisteredAPIs(registeredCount);
     setOnline(onlineCount);
     //setReg(registeredCount);
