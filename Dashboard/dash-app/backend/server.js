@@ -21,7 +21,7 @@ const queryApi = influxDB.getQueryApi(orgID);
 const app = express();
 app.use(cors());
 //const port = 3001;
-const port = parseInt(process.env.PORT) || 3001;
+const port = process.env.PORT || 3001;
 
 // WebSocket connection
 const wsClient = new WebSocket(wsUrl);
