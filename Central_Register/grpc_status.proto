@@ -1,0 +1,14 @@
+syntax = "proto3";
+option go_package = "github.com/Ling-Qingran/Central_Register/grpc_status";
+
+service StatusService {
+  rpc CheckStatus (StatusRequest) returns (StatusResponse);
+}
+
+message StatusRequest {
+  // Request fields
+}
+
+message StatusResponse {
+  string status = 1;
+}

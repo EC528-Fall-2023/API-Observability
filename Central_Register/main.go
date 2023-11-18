@@ -1,12 +1,17 @@
 package main
 
 import (
+	gs "centralReg/grpc_status"
 	pb "centralReg/service_reg"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -26,30 +31,88 @@ var upgrader = websocket.Upgrader{
 
 func main() {
 	go monitorServices()
+
+	// Use the PORT environment variable
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8090" // Default to 8090 if PORT is not set
+	}
+
 	http.HandleFunc("/register", registerService)
 	http.HandleFunc("/services", listServices)
-	fmt.Println("Service Registry is running on port 8090")
-	http.ListenAndServe(":8090", nil)
+
+	fmt.Printf("Service Registry is running on port %s\n", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }
 
 func monitorServices() {
 	for {
 		registry.RLock()
 		for _, service := range registry.services {
-			go checkServiceStatus(service)
+			//go checkServiceStatus(service)
+			if service.Type == "gRPC" {
+				go checkGRPCServiceStatus(service)
+			} else {
+				go checkRESTServiceStatus(service)
+			}
+
 		}
 		registry.RUnlock()
 		time.Sleep(10 * time.Second) // Check every 10 seconds
 	}
 }
 
-func checkServiceStatus(service *ApiService) {
-	url := fmt.Sprintf("http://%s:%d/status", service.Host, service.Port)
+func checkRESTServiceStatus(service *ApiService) {
+	var url string
+	if service.Host == "localhost" {
+		url = fmt.Sprintf("http://%s:%d/status", service.Host, service.Port)
+	} else {
+		url = fmt.Sprintf("https://%s/status", service.Host)
+	}
+
+	// Print the URL to the console
+	fmt.Println("Checking service status at:", url)
+
 	resp, err := http.Get(url)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		service.Status = "Down"
 	} else {
 		service.Status = "Up"
+	}
+
+	// It's important to close the response body to free resources
+	if resp != nil {
+		resp.Body.Close()
+	}
+}
+
+func checkGRPCServiceStatus(service *ApiService) {
+	// Set up a connection to the server with insecure credentials for simplicity
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", service.Host, service.Port), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Printf("Failed to dial gRPC service: %v", err)
+		service.Status = "Down"
+		return
+	}
+	defer conn.Close()
+
+	// Create a new StatusService client
+	client := gs.NewStatusServiceClient(conn)
+
+	// Prepare a context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	// Call the CheckStatus method
+	response, err := client.CheckStatus(ctx, &gs.StatusRequest{})
+	if err != nil {
+		log.Printf("Error calling CheckStatus: %v", err)
+		service.Status = "Down"
+	} else {
+		service.Status = response.Status
+		//service.Status = "Up"
 	}
 }
 
@@ -72,22 +135,29 @@ func registerService(w http.ResponseWriter, r *http.Request) {
 		var reg Registration
 		if err := json.Unmarshal(msg, &reg); err != nil {
 			log.Printf("Error decoding registration data: %s", err)
-			// Optionally, send an error message back to the client
 			conn.WriteMessage(websocket.TextMessage, []byte("Invalid registration data"))
 			continue
 		}
 
 		registry.Lock()
-		registry.services[reg.Name] = &ApiService{
-			Name: reg.Name,
-			Host: reg.Host,
-			Port: reg.Port,
-			Type: reg.Type,
+		if existingService, exists := registry.services[reg.Name]; exists {
+			// Optionally update existing registration instead of ignoring
+			existingService.Host = reg.Host
+			existingService.Port = reg.Port
+			existingService.Type = reg.Type
+			log.Printf("Updated registration for service %s", reg.Name)
+		} else {
+			registry.services[reg.Name] = &ApiService{
+				Name: reg.Name,
+				Host: reg.Host,
+				Port: reg.Port,
+				Type: reg.Type,
+			}
+			log.Printf("Service %s registered successfully with Host: %s, Port: %d", reg.Name, reg.Host, reg.Port)
 		}
 		registry.Unlock()
 
-		log.Printf("Service %s which is %s registered successfully with Host: %s, Port: %d\n", reg.Name, reg.Type, reg.Host, reg.Port)
-		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Service %s registered successfully", reg.Name)))
+		conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Service %s processed", reg.Name)))
 	}
 }
 
