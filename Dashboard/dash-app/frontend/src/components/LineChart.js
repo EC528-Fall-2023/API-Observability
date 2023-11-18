@@ -9,7 +9,7 @@ const LineChart = ({ dataSets, title }) => {
       const svg = d3.select(chartRef.current);
       svg.selectAll("*").remove(); // Clear previous data
 
-      const width = 1800;
+      const width = 1400;
       const height = 300;
       const margin = { top: 40, right: 150, bottom: 40, left: 40 }; // Adjusted right margin for legend
 
@@ -137,7 +137,7 @@ const LineChart = ({ dataSets, title }) => {
     }
   }, [dataSets, title]); // Only re-run the effect if dataSets or title changes
 
-  return <svg ref={chartRef} width="1800" height="300"></svg>;
+  return <svg ref={chartRef} width="1400" height="300"></svg>;
 };
 
 export default LineChart;

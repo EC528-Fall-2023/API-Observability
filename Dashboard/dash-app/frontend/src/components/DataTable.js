@@ -400,7 +400,7 @@ const DataTable = () => {
         <Table sx={{ minWidth: 400 }} aria-label="customized table">
           <TableHead>
             <TableRow size="small">
-              <StyledTableCell>TYPE</StyledTableCell>
+              <StyledTableCell>STATUS</StyledTableCell>
               <StyledTableCell>PROTOCOL</StyledTableCell>
               <StyledTableCell>PATH</StyledTableCell>
               <StyledTableCell>COUNTER (Requests)</StyledTableCell>
