@@ -12,7 +12,7 @@ const wsUrl = 'wss://centralreg-necuf5ddgq-ue.a.run.app/services';
 const baseURL = "http://34.86.236.100/";
 const influxToken = "I_UycfPULIG3VFr6eT-b0EzSIESMVb6rxZlS3n49zwHAcmpjPXQPS4u0eaZNY69hsWIVErE--T3lodcHQyx5rA==";
 const orgID = "8d3c99041893ac29";
-const bucket = "testing";
+
 
 const influxDB = new InfluxDB({ url: baseURL, token: influxToken });
 const queryApi = influxDB.getQueryApi(orgID);
@@ -32,14 +32,8 @@ wsClient.on('message', function incoming(message) {
   data.forEach(item => {
     serviceDetails[item.Name] = {type: item.Type, status:item.Status}; // Store name and its associated type
   });
-  console.log('Received message:', data);
+  console.log('Received message:', serviceDetails);
   fetchData();
-});
-
-
-wsClient.on('message', function incoming(message) {
-  const messageString = message.toString();
-  console.log('Received message:', messageString);
 });
 
 wsClient.on('error', function error(error) {
@@ -92,6 +86,7 @@ wsClient.on('close', function close() {
     
     queryApi.queryLines(queryTesting, {
       next(line) {
+        //console.log(serviceStatus)
         protocol=serviceType
         status=serviceStatus
         csvDataTesting.push(line);
@@ -100,7 +95,7 @@ wsClient.on('close', function close() {
         console.error('Error querying testing bucket:', error);
       },
       complete() {
-        console.log('Finished querying testing bucket');
+        //console.log('Finished querying testing bucket');
         processCsvData(csvDataTesting, 'combined_metrics');
         // Fetch data from "gRPC-Metrics" bucket after completing the first query
       }
@@ -207,7 +202,7 @@ wsClient.on('close', function close() {
   
   for (const [endpoint, timestamps] of Object.entries(tempData)) {
     latestData[endpoint] = {};
-    console.log(endpoint)
+    
     const validDataEntries = Object.entries(timestamps).reduce((entries, [timestamp, data]) => {
       if (data.count !== 0 || data.durationSum !== 0 || data.request_size !== 0 || data.response_size !== 0 || data.status_code !== 0) {
         entries.push({
@@ -228,10 +223,10 @@ wsClient.on('close', function close() {
   
     if (validDataEntries.length > 0) {
       latestData[endpoint] = validDataEntries;
-      //console.log("ENTERED")
+      console.log("ENTERED")
     }
   }
-        
+  console.log(latestData)
     }
 
 // Fetch data immediately on start and then every 10 seconds
@@ -239,7 +234,6 @@ fetchData();
 setInterval(fetchData, 10 * 1000);
 
 app.get('/data/explorer', (req, res) => {
-  //console.log("SENT")
   res.json(latestData);
 });
 
