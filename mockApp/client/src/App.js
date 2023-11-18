@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Form, Container, Header, Table } from 'semantic-ui-react';
-
 //import userService from './UserServiceClient';
-
 import axios from 'axios';
 import './index.css';
 
@@ -22,27 +20,22 @@ function App() {
   var client = new UserServiceClient('https://envoy-proxy-necuf5ddgq-ue.a.run.app', null, null);
   const [user, setUser] = useState(null);
   
-  //const handleSubmit = (e) => {
+  
   const handleSubmit = (e = { preventDefault: () => {} }) => {
     e.preventDefault();
 
     const objt = { name, age, commuteMethod, college, hobbies };
-    //const apiUrl = apiMode === 'REST' ? 'http://localhost:4000/adduser' : 'https://sheet.best/api/sheets/ab206fd6-ee69-4b1d-a56f-f29c0ba70176';
     const apiUrl = apiMode === 'REST' ? 'https://rest-envoy-necuf5ddgq-ue.a.run.app/adduser' : 'https://sheet.best/api/sheets/ab206fd6-ee69-4b1d-a56f-f29c0ba70176';
-    //https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/
 
     axios.post(apiUrl, objt).then((response) => {
       console.log(response);
-      // Add logic to handle the response, e.g., update state or show a message
     });
   };
 
-  //const handleUpdate = (e) => {
   const handleUpdate = (e = { preventDefault: () => {} }) => {
     e.preventDefault();
 
     const objt = { name, age, commuteMethod, college, hobbies };
-    //`http://localhost:4000/updateuser/${name}`, // Update with your Go server route
     
     axios
         .put(
@@ -51,36 +44,26 @@ function App() {
         )
         .then((response) => {
           console.log(response);
-          // Add logic to handle the response
         });
   };
 
-  //const handleSearch = (e) => {
   const handleSearch = (e = { preventDefault: () => {} }) => {
     e.preventDefault();
-  
-    // Perform the search using the name in the state
-    //axios.get(`http://localhost:4000/getuser/${name}`)
+
     axios.get(`https://rest-envoy-necuf5ddgq-ue.a.run.app/getuser/${name}`)
       .then((response) => {
         console.log(response.data);
         setAPIdata([response.data]); // Wrap the response data in an array
-        // Add logic to handle the search response
       })
       .catch((error) => {
         console.error('Error searching:', error);
-        // Add logic to handle search error
       });
   };
   
-
   const handleAll  = (e = { preventDefault: () => {} }) => {
-    // Fetch all data from the server and reset the APIdata state
-    //axios.get('http://localhost:4000/getuser')
     axios.get('https://rest-envoy-necuf5ddgq-ue.a.run.app/getuser')
       .then((incomingData) => {
         if (Array.isArray(incomingData.data) && incomingData.data.length > 0) {
-          // Exclude the first row (header) and update the state
           setAPIdata(incomingData.data.slice(1));
         } else {
           // Handle the case where data is not as expected
@@ -89,10 +72,8 @@ function App() {
       })
       .catch((error) => {
         console.error('Error fetching all data:', error);
-        // Add logic to handle error
       });
   };
-
 
   const handleDelete = (e = { preventDefault: () => {} }) => {
     e.preventDefault();
@@ -102,9 +83,9 @@ function App() {
         .post(apiUrl)
         .then((response) => {
           console.log(response);
-          // Add logic to handle the response
         });
   };
+
 
   const handleGetUser = () => {
     let request = new GetUserRequest();
@@ -115,23 +96,19 @@ function App() {
         console.error(err);
         return;
       }
-      //setUser(response.toObject());
-      //setAPIdata([response.data]);
       setAPIdata([response.toObject()]);
       console.log(request);
     });
   };
 
   const handleCreateUser = () => {
-    // Create a User message and set its fields
     let userMessage = new User();
     userMessage.setName(name);
-    userMessage.setAge(age);  // Assuming User has a setAge method
-    userMessage.setCommutemethod(commuteMethod); // and so on for other fields...
+    userMessage.setAge(age);  
+    userMessage.setCommutemethod(commuteMethod); 
     userMessage.setCollege(college);
     userMessage.setHobbies(hobbies);
   
-    // Create a CreateUserRequest and set its user message
     let request = new CreateUserRequest();
     request.setUser(userMessage);
   
@@ -142,27 +119,19 @@ function App() {
         return;
       }
       alert('User successfully created!');
-      // Reset the form fields after successful creation
-      //setName('');
-      //setAge('');
-      //setcommuteMethod('');
-      //setCollege('');
-      //setHobbies('');
     });
   };
 
   const handleUpdateUser = () => {
     let request = new UpdateUserRequest();
     
-    // Create a User message and set its fields
     let userMessage = new User();
     userMessage.setName(name)
-    userMessage.setAge(age); // Assuming User has a setAge method
-    userMessage.setCommutemethod(commuteMethod); // and so on for other fields...
+    userMessage.setAge(age); 
+    userMessage.setCommutemethod(commuteMethod);
     userMessage.setCollege(college);
     userMessage.setHobbies(hobbies);
     
-    // Set the name and user message in UpdateUserRequest
     request.setName(name);
     request.setUser(userMessage);
     
@@ -188,7 +157,6 @@ function App() {
         }
         alert('User successfully deleted!');
 
-        // Clear the displayed user details
         setUser(null);
 
         // Clear the input field, if needed
@@ -198,6 +166,8 @@ function App() {
     });
   };
 
+
+  // Following functions check which API is used and select functions
   const handleSubmitChoice = (e) => {
     if (apiMode === 'REST') {
       handleSubmit(e);
@@ -329,4 +299,3 @@ function App() {
 }
 
 export default App;
-

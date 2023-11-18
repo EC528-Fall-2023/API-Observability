@@ -1,0 +1,19 @@
+{
+  "name": "my-backend-service",
+  "version": "1.0.0",
+  "description": "Backend service for handling data and WebSocket connections",
+  "main": "./server.js",
+  "scripts": {
+    "start": "node server.js",
+    "deploy": "gcloud deploy"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "cors": "^2.8.5",
+    "papaparse": "^5.3.8",
+    "@influxdata/influxdb-client": "^1.18.0",
+    "ws": "^8.2.3"
+  }
+}
