@@ -39,6 +39,7 @@ function App() {
     
     axios
         .put(
+            //`https://rest-envoy-necuf5ddgq-ue.a.run.app/updateuser/${name}`,
             `https://rest-envoy-necuf5ddgq-ue.a.run.app/updateuser/${name}`,
             objt
         )
@@ -78,7 +79,8 @@ function App() {
   const handleDelete = (e = { preventDefault: () => {} }) => {
     e.preventDefault();
 
-    const apiUrl = `https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/deleteuser/${name}`; // Update with your Go server route
+    //const apiUrl = `https://rest-apigo-main-6j7fqbeloq-ue.a.run.app/deleteuser/${name}`; // Update with your Go server route
+    const apiUrl = `https://rest-envoy-necuf5ddgq-ue.a.run.app/deleteuser/${name}`; // Update with your Go server route
     axios
         .post(apiUrl)
         .then((response) => {
