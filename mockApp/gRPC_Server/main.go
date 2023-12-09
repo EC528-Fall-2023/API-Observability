@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Ling-Qingran/gRPC-Observability/status"
 	"github.com/Ling-Qingran/gRPC-Observability/user"
-	"github.com/gorilla/websocket"
+	"github.com/jculley01/observability-module/interceptor"
+	"github.com/jculley01/observability-module/registration"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -18,25 +18,10 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"time"
 )
 
 type userServiceServer struct {
 	user.UnimplementedUserServiceServer
-}
-type statusServiceServer struct {
-	status.UnimplementedStatusServiceServer
-}
-
-func (s *statusServiceServer) CheckStatus(ctx context.Context, in *status.StatusRequest) (*status.StatusResponse, error) {
-	return &status.StatusResponse{Status: "Up"}, nil
-}
-
-type Registration struct {
-	Name string `json:"name"`
-	Host string `json:"host"`
-	Port int    `json:"port"`
-	Type string `json:"type"`
 }
 
 const (
@@ -253,61 +238,13 @@ func (s *userServiceServer) CreateUser(ctx context.Context, req *user.CreateUser
 	return newUser, nil
 }
 
-func registerWithRegistry(name, host string, port int, servType string) {
-	registryURL := "wss://centralreg-necuf5ddgq-ue.a.run.app/register" // WebSocket URL
-	registrationData := Registration{
-		Name: name,
-		Host: host,
-		Port: port,
-		Type: servType,
-	}
-
-	jsonData, err := json.Marshal(registrationData)
-	if err != nil {
-		fmt.Println("Error marshalling registration data:", err)
-		return
-	}
-
-	ticker := time.NewTicker(10 * time.Second) // Retry every 10 seconds
-	defer ticker.Stop()
-
-	for {
-		c, _, err := websocket.DefaultDialer.Dial(registryURL, nil)
-		if err != nil {
-			fmt.Println("Error connecting to WebSocket, retrying...:", err)
-		} else {
-			// Successfully connected, send registration data
-			err = c.WriteMessage(websocket.TextMessage, jsonData)
-			if err != nil {
-				fmt.Println("Error sending registration data, retrying...:", err)
-			} else {
-				// Read response
-				_, message, err := c.ReadMessage()
-				if err != nil {
-					fmt.Println("Error reading response, retrying...:", err)
-				} else {
-					fmt.Printf("Response from server: %s\n", message)
-					c.Close()
-					break // Exit the loop if registration is successful
-				}
-			}
-			c.Close() // Close the connection in case of any error
-		}
-
-		// Wait for the next tick before retrying
-		<-ticker.C
-	}
-}
-
 func main() {
-
-	serviceName := "Student-Info gRPC Service Local"
-	serviceHost := "localhost"
-	servicePort := 8080
-	serviceType := "gRPC"
-
-	// Register your service with the registry
-	go registerWithRegistry(serviceName, serviceHost, servicePort, serviceType)
+	go func() {
+		err := registration.RegisterService("wss://centralreg-necuf5ddgq-ue.a.run.app/register", "grpcapiservicetest", "gRPC")
+		if err != nil {
+			log.Printf("Failed to register service: %v", err)
+		}
+	}()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -318,10 +255,10 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	s := grpc.NewServer(grpc.UnaryInterceptor(MetricsInterceptor))
+	s := grpc.NewServer(grpc.UnaryInterceptor(interceptor.MetricsInterceptor))
+	//s := grpc.NewServer(grpc.UnaryInterceptor(MetricsInterceptor))
 
 	user.RegisterUserServiceServer(s, &userServiceServer{})
-	status.RegisterStatusServiceServer(s, &statusServiceServer{})
 
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
