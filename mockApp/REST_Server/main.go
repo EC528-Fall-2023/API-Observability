@@ -1,13 +1,13 @@
 package main
 
 import (
-	"back-end/influxdb"
 	pb "back-end/user"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
+	"github.com/jculley01/observability-module/instrumentation"
+	"github.com/jculley01/observability-module/registration"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -15,71 +15,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 )
 
 type userInput = pb.User
 
-var influxClient = influxdb.InitInfluxDB()
-
-var getUserCount int = 0
-var getUserError int = 0
-
-var getUserNameCount int = 0
-var getUserNameError int = 0
-
-var updateUserCount int = 0
-var updateUserError int = 0
-
-var deleteUserCount int = 0
-var deleteUserError int = 0
-
-var addUserCount int = 0
-var addUserError int = 0
-
-func init() {
-	fmt.Println("init called")
-	influxClient = influxdb.InitInfluxDB()
-}
-
 func getUsersFromSheets(c *gin.Context) {
-	startTime := time.Now()
-	getUserCount++
-	tags := map[string]string{
-		"endpoint":   "getuser",
-		"user_agent": c.Request.UserAgent(),
-		"ip_address": c.ClientIP(),
-	}
-	fields := map[string]interface{}{
-		"request_count": int64(getUserCount),
-		"request_size":  c.Request.ContentLength,
-	}
-
 	var users []userInput
-	defer func() {
-		if r := recover(); r != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		}
-
-		if len(users) == 0 {
-			getUserError++
-			fields["error_count"] = int64(getUserError)
-			fields["status_code"] = http.StatusInternalServerError
-		} else {
-			fields["status_code"] = http.StatusOK
-		}
-
-		fields["response_size"] = c.Writer.Size()
-
-		latency := time.Since(startTime)
-		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
-		fields["latency"] = latencyMs
-
-		if err := influxdb.WriteMetric(influxClient, "REST", tags, fields); err != nil {
-			fmt.Println("Error writing metrics:", err)
-		}
-	}()
-
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
 	if err != nil {
@@ -121,42 +62,8 @@ func getUsersFromSheets(c *gin.Context) {
 }
 
 func getUserFromSheetsbyName(c *gin.Context) {
-	startTime := time.Now()
-	getUserNameCount++
-	tags := map[string]string{
-		"endpoint":   "getuser/name",
-		"user_agent": c.Request.UserAgent(),
-		"ip_address": c.ClientIP(),
-	}
-	fields := map[string]interface{}{
-		"request_count": int64(getUserNameCount),
-		"request_size":  c.Request.ContentLength,
-	}
 
 	var user userInput
-	defer func() {
-		if r := recover(); r != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		}
-
-		if user.Name == "" {
-			getUserNameError++
-			fields["error_count"] = int64(getUserNameError)
-			fields["status_code"] = http.StatusNotFound
-		} else {
-			fields["status_code"] = http.StatusOK
-		}
-
-		fields["response_size"] = c.Writer.Size()
-
-		latency := time.Since(startTime)
-		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
-		fields["latency"] = latencyMs
-
-		if err := influxdb.WriteMetric(influxClient, "REST", tags, fields); err != nil {
-			fmt.Println("Error writing metrics:", err)
-		}
-	}()
 
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
@@ -212,31 +119,8 @@ func getUserFromSheetsbyName(c *gin.Context) {
 }
 
 func deleteUserFromSheets(c *gin.Context) {
-	startTime := time.Now()
-	deleteUserCount++
-	tags := map[string]string{
-		"endpoint":   "deleteuser/name",
-		"user_agent": c.Request.UserAgent(),
-		"ip_address": c.ClientIP(),
-	}
-	fields := map[string]interface{}{
-		"request_count": int64(deleteUserCount),
-		"request_size":  c.Request.ContentLength,
-	}
 
 	var status int
-	defer func() {
-		fields["response_size"] = c.Writer.Size()
-		fields["status_code"] = status
-
-		latency := time.Since(startTime)
-		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
-		fields["latency"] = latencyMs
-
-		if err := influxdb.WriteMetric(influxClient, "REST", tags, fields); err != nil {
-			fmt.Println("Error writing metrics:", err)
-		}
-	}()
 
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
@@ -301,8 +185,6 @@ func deleteUserFromSheets(c *gin.Context) {
 		}).Context(ctx).Do()
 
 		if err != nil {
-			deleteUserError++
-			fields["error_count"] = int64(deleteUserError)
 			status = http.StatusInternalServerError
 			log.Printf("Error deleting row: %v", err)
 			c.IndentedJSON(status, gin.H{"message": "Error deleting user"})
@@ -336,31 +218,8 @@ func getSheetID(spreadsheetID, sheetName string, srv *sheets.Service) int64 {
 }
 
 func updateUserInSheets(c *gin.Context) {
-	startTime := time.Now()
-	updateUserCount++
-	tags := map[string]string{
-		"endpoint":   "updateuser/name",
-		"user_agent": c.Request.UserAgent(),
-		"ip_address": c.ClientIP(),
-	}
-	fields := map[string]interface{}{
-		"request_count": int64(updateUserCount),
-		"request_size":  c.Request.ContentLength,
-	}
 
 	var status int
-	defer func() {
-		fields["response_size"] = c.Writer.Size()
-		fields["status_code"] = status
-
-		latency := time.Since(startTime)
-		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
-		fields["latency"] = latencyMs
-
-		if err := influxdb.WriteMetric(influxClient, "REST", tags, fields); err != nil {
-			fmt.Println("Error writing metrics:", err)
-		}
-	}()
 
 	ctx := context.Background()
 	b, err := os.ReadFile("credentials.json")
@@ -432,8 +291,6 @@ func updateUserInSheets(c *gin.Context) {
 
 	_, err = srv.Spreadsheets.Values.Update(spreadsheetID, writeRange, vr).ValueInputOption("RAW").Do()
 	if err != nil {
-		updateUserError++
-		fields["error_count"] = int64(updateUserError)
 		status = http.StatusInternalServerError
 		log.Printf("Error updating user in Google Sheets: %v", err)
 		c.IndentedJSON(status, gin.H{"message": "Unable to update user in Google Sheets"})
@@ -445,33 +302,9 @@ func updateUserInSheets(c *gin.Context) {
 }
 
 func addUser(context *gin.Context) {
-	startTime := time.Now()
-	addUserCount++
-	tags := map[string]string{
-		"endpoint":   "adduser",
-		"user_agent": context.Request.UserAgent(),
-		"ip_address": context.ClientIP(),
-	}
-	fields := map[string]interface{}{
-		"request_count": int64(addUserCount),
-		"request_size":  context.Request.ContentLength,
-	}
 
 	var newUser userInput
 	var status int
-
-	defer func() {
-		fields["response_size"] = context.Writer.Size()
-		fields["status_code"] = status
-
-		latency := time.Since(startTime)
-		latencyMs := float64(latency.Nanoseconds()) / 1000000.0
-		fields["latency"] = latencyMs
-
-		if err := influxdb.WriteMetric(influxClient, "REST", tags, fields); err != nil {
-			fmt.Println("Error writing metrics:", err)
-		}
-	}()
 
 	if err := context.BindJSON(&newUser); err != nil {
 		status = http.StatusBadRequest
@@ -479,8 +312,6 @@ func addUser(context *gin.Context) {
 		return
 	}
 	if err := addUsertoGoogleSheets(newUser); err != nil {
-		addUserError++
-		fields["error_count"] = int64(addUserError)
 		status = http.StatusInternalServerError
 		context.IndentedJSON(status, gin.H{"message": "Failed to store data in Google Sheets"})
 		return
@@ -583,81 +414,30 @@ func addUsertoGoogleSheets(user userInput) error {
 	return nil
 }
 
-func registerWithRegistry(name, host string, port int, servType string) {
-	registryURL := "ws://localhost:8090/register" // WebSocket URL
-	registrationData := Registration{
-		Name: name,
-		Host: host,
-		Port: port,
-		Type: servType,
-	}
-
-	jsonData, err := json.Marshal(registrationData)
-	if err != nil {
-		fmt.Println("Error marshalling registration data:", err)
-		return
-	}
-
-	ticker := time.NewTicker(10 * time.Second) // Retry every 10 seconds
-	defer ticker.Stop()
-
-	for {
-		c, _, err := websocket.DefaultDialer.Dial(registryURL, nil)
-		if err != nil {
-			fmt.Println("Error connecting to WebSocket, retrying...:", err)
-		} else {
-			// Successfully connected, send registration data
-			err = c.WriteMessage(websocket.TextMessage, jsonData)
-			if err != nil {
-				fmt.Println("Error sending registration data, retrying...:", err)
-			} else {
-				// Read response
-				_, message, err := c.ReadMessage()
-				if err != nil {
-					fmt.Println("Error reading response, retrying...:", err)
-				} else {
-					fmt.Printf("Response from server: %s\n", message)
-					c.Close()
-					break // Exit the loop if registration is successful
-				}
-			}
-			c.Close() // Close the connection in case of any error
-		}
-
-		// Wait for the next tick before retrying
-		<-ticker.C
-	}
-}
-
-type Registration struct {
-	Name string `json:"name"`
-	Host string `json:"host"`
-	Port int    `json:"port"`
-	Type string `json:"type"`
-}
-
 func main() {
-	serviceName := "Student-Info REST Service"
-	serviceHost := "localhost"
-	servicePort := 4000
-	serviceType := "REST"
 
-	// Register your service with the registry
-	go registerWithRegistry(serviceName, serviceHost, servicePort, serviceType)
+	go func() {
+		err := registration.RegisterService("wss://centralreg-necuf5ddgq-ue.a.run.app/register", "REST API Service TEST", "REST")
+		if err != nil {
+			log.Printf("Failed to register service: %v", err)
+		}
+	}()
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 	//initialize the router using gin
 	router := gin.Default()
+
+	instrumentation.InstrumentEndpoint(router, "wss://centralreg-necuf5ddgq-ue.a.run.app", "REST API Service TEST", "http://35.236.200.122:8086/", "AxNHAn8hBBhsHz0o6HVJ2iM9gfGqybVWugTx5crw0o2yvkPTURsZqztPjxOXp4YWR2Hy9jiQPZePyilXFh7lcg==", "API-Observability", "combined_metrics")
 
 	router.GET("/getuser", getUsersFromSheets)
 	router.GET("/getuser/:name", getUserFromSheetsbyName)
 	router.PUT("/updateuser/:name", updateUserInSheets)
 	router.POST("/deleteuser/:name", deleteUserFromSheets)
 	router.POST("/adduser", addUser)
-	router.GET("/status", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "Up",
-		})
-	})
-	router.Run("localhost:4000")
+
+	router.Run(":" + port)
 
 }
