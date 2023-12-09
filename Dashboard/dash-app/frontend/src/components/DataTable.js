@@ -13,11 +13,12 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
 }));
 
 const StatusIndicator = styled('div')(({ isFetching }) => ({
-  width: '15px',
-  height: '15px',
+  width: '25px',
+  height: '25px',
   marginRight:'5px',
-  marginTop:'3px',
+  marginTop:'5px',
   borderRadius: '50%',
+  marginLeft:'30px',
   backgroundColor: isFetching ? 'green' : 'red',
 }));
 
@@ -74,6 +75,18 @@ const DashboardInfo = ({ label, value }) => {
   );
 };
 
+const DashboardInfoCR = ({ label, value }) => {
+  return (
+    <Paper elevation={3} style={{ ...styles.dashboardInfoContainer, width: 'auto', flexGrow: 0, margin: '10px', padding: '10px' }}>
+      <Typography variant="subtitle1" style={styles.dashboardLabel}>
+        {label}
+      </Typography>
+      <Typography variant="body1" style={styles.dashboardValue}>
+        {value}
+      </Typography>
+    </Paper>
+  );
+};
 const styles = {
   dashboardRow: {
     display: 'flex',
@@ -101,8 +114,15 @@ const styles = {
     fontWeight: 'bold', // bold font for value
   },
   statusdiv:{
-    display: 'flex', justifyContent: 'center', marginTop: '10px' 
-  }
+    display: 'flex', justifyContent: 'center', marginTop: '10px', marginBottom:'20px', fontSize:'25px', fontWeight:'bold'
+  },
+  metricsContainer: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center', // Centers the items horizontally
+    alignItems: 'center', // Centers items vertically
+    // ... any other styling you need ...
+  },
 };
 
 
@@ -127,53 +147,7 @@ const styles = {
 //       { name: 'HOBBY', type: 'string', description: 'Favorite Hobby' }
 //     ]
 //   },
-//   {
-//     type: 'PUT',
-//     protocol: 'REST',
-//     path: '/updateuser/:name',
-//     details: {
-//       counter: 365,
-//       responseRate: 4.53,
-//       errorRate: 17,
-//       requestRate: 110,
-//       payloadSize: 1.9
-//     },
-//     variables: [
-//       { name: 'NAME', type: 'string', description: 'Name of User' }
-//     ]
-//   },
-//   {
-//     type: 'DELETE',
-//     protocol: 'REST',
-//     path: '/deleteuser/:name',
-//     details: {
-//       counter: 101,
-//       responseRate: 0.73,
-//       errorRate: 2,
-//       requestRate: 135,
-//       payloadSize: 3.3
-//     },
-//     variables: [
-//       { name: 'NAME', type: 'string', description: 'Name of User' }
-//     ]
-//   },
-//   {
-//     type: 'GET',
-//     protocol: 'REST',
-//     path: '/getuser/:name',
-//     details: {
-//       counter: 234,
-//       responseRate: 1.64,
-//       errorRate: 9,
-//       requestRate: 186,
-//       payloadSize: 2.4
-//     },
-//     variables: [
-//       { name: 'NAME', type: 'string', description: 'Name of User' }
-//     ]
-//   }
-// ];
-
+//   
 
 // Helper function to format time from seconds to HH:MM:SS
 function formatTime(seconds) {
@@ -211,6 +185,8 @@ const DataTable = () => {
   const [graphdata, setGraphdata] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
   const [isFetching, setIsFetching] = useState(false);
+  const [centralRegMetrics, setCentralRegMetrics] = useState(null);
+
 
   const [uptime, setUptime] = useState(0);
 
@@ -297,8 +273,8 @@ const DataTable = () => {
   
     const fetchDataFromServer = async () => {
       try {
-          //const response = await fetch('http://localhost:3001/data/explorer');
-          const response = await fetch('https://dashboard-server-necuf5ddgq-ue.a.run.app/data/explorer');
+         const response = await fetch('http://localhost:3001/data/explorer');
+          //const response = await fetch('https://dashboard-server-necuf5ddgq-ue.a.run.app/data/explorer');
           if (response.ok) {
               const fetchedData = await response.json();  // Rename to fetchedData to avoid shadowing
               setIsFetching(true);
@@ -323,6 +299,34 @@ const DataTable = () => {
     return () => {
       clearInterval(intervalId);  // Cleanup interval on component unmount
     };
+  }, []);
+
+
+
+  useEffect(() => {
+    const fetchCentralRegMetrics = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/central-reg-metrics'); // Use the actual endpoint
+        if (response.ok) {
+          const metrics = await response.json();
+          console.log(metrics)
+          setCentralRegMetrics(metrics); // Implement this function based on your data structure
+        } else {
+          console.error('Failed to fetch CentralReg metrics:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching CentralReg metrics:', error);
+      }
+    };
+  
+    fetchCentralRegMetrics();
+      // Refetch
+      const intervalId = setInterval(fetchCentralRegMetrics, 1000);
+  
+      return () => {
+        clearInterval(intervalId);  // Cleanup interval on component unmount
+      };
+    // Refetch the metrics at your desired interval
   }, []);
 
   function convertBackendDataToMockFormat(data) {
@@ -359,7 +363,8 @@ const DataTable = () => {
 
       newData.push({
         type: latestEntry.status,  // hardcoded as per your requirement
-        protocol: latestEntry.protocol,  // hardcoded as per your requirement
+        protocol: latestEntry.protocol,
+        service:latestEntry.bucket,
         path: path,
         details: {
           timestamp: latestEntry.timestamp,
@@ -384,17 +389,45 @@ const DataTable = () => {
     return newData;
   }
 
+  const CentralRegMetricsDisplay = ({ metrics }) => {
+    if (!metrics) {
+      return <div>Loading...</div>; // or some other placeholder
+    }
+  
+    return (
+      <div>
+        <div style={styles.metricsContainer}>
+          {Object.entries(metrics).map(([key, value]) => (
+            <DashboardInfoCR 
+              key={key} 
+              label={key.replace(/_/g, ' ').toUpperCase() + ':'} 
+              value={value.toLocaleString()} 
+            />
+          ))}
+        </div>
+      </div>
+    );
+  };
+  
+  
 
 
   return (
     <>
+    <div style={{ display: 'flex', justifyContent:'center', alignItems: 'center', margin: '20px 0' }}>
+        <Typography variant="h5" style={{ textAlign: 'center', fontWeight:'bold' }}>
+          Central Register Health
+        </Typography>
+        <div style={styles.statusdiv}>
+          <StatusIndicator isFetching={isFetching} />
+          {'Connection Status'}
+        </div>
+      </div>
+    <CentralRegMetricsDisplay metrics={centralRegMetrics} />
       <div style={styles.dashboardRow}>
       <DashboardInfo label="Uptime:" value={formatTime(uptime)} />
       <DashboardInfo label="Online APIs:" value={onlineAPI} />
       <DashboardInfo label="Registered API Services:" value={regAPI} />
-      </div>
-      <div style={styles.statusdiv}>
-      <StatusIndicator isFetching={isFetching} /> {'Connection Status'} 
       </div>
       <TableContainer component={Paper}>
         <Table sx={{ minWidth: 400 }} aria-label="customized table">
@@ -402,6 +435,7 @@ const DataTable = () => {
             <TableRow size="small">
               <StyledTableCell>STATUS</StyledTableCell>
               <StyledTableCell>PROTOCOL</StyledTableCell>
+              <StyledTableCell>Service</StyledTableCell>
               <StyledTableCell>PATH</StyledTableCell>
               <StyledTableCell>COUNTER (Requests)</StyledTableCell>
               <StyledTableCell>RESPONSE RATE (s)</StyledTableCell>
@@ -428,6 +462,7 @@ const DataTable = () => {
                     </StyledButton>
                   </TableCell>
                   <TableCell sx={{ color: 'grey', fontSize: '25px' }}>{row.protocol}</TableCell>
+                  <TableCell>{row.service}</TableCell>
                   <TableCell>{row.path}</TableCell>
                   <TableCell>{row.details.counter}</TableCell>
                   <TableCell>{row.details.responseRate}</TableCell>

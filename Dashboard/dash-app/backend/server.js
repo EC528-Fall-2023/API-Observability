@@ -9,7 +9,7 @@ const WebSocket = require('ws');
 const wsUrl = 'wss://centralreg-necuf5ddgq-ue.a.run.app/services';
 
 // Existing code for InfluxDB connection and variables
-const baseURL = "http://34.86.236.100/";
+const baseURL = "http://35.236.200.122:8086/";
 const influxToken = "I_UycfPULIG3VFr6eT-b0EzSIESMVb6rxZlS3n49zwHAcmpjPXQPS4u0eaZNY69hsWIVErE--T3lodcHQyx5rA==";
 const orgID = "8d3c99041893ac29";
 
@@ -46,34 +46,67 @@ wsClient.on('close', function close() {
 
 
 
-// const dataExplorerQueryTesting = `
-// from(bucket: "testing")
-//   |> range(start: -1h)
-//   |> filter(fn: (r) => r["_measurement"] == "REST")
-//   |> filter(fn: (r) => r["_field"] == "status_code" or r["_field"] == "response_size" or r["_field"] == "request_size" or r["_field"] == "request_count" or r["_field"] == "latency" or r["_field"] == "error_count")
-//   |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
-//   |> yield(name: "mean")
-//   |> fill(usePrevious: true)`
-
-
-  const dataExplorerQueryGrpcMetrics = `
-  from(bucket: "gRPC-Metrics")
-    |> range(start: -24h)
-    |> filter(fn: (r) => r["_measurement"] == "gRPCMetrics")
-    |> filter(fn: (r) => r["_field"] == "request_count" or r["_field"] == "request_size" or r["_field"] == "response_size" or r["_field"] == "error_rate" or r["_field"] == "duration")
-    |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
-    |> yield(name: "mean")
-    |> fill(usePrevious: true)`;
-  
   let latestData = {};
   let protocol="";
   let status="";
+  let centralRegMetrics= {
+    cpu_usage: 0,
+    disk_free: 0,
+    disk_total: 0,
+    disk_used: 0,
+    memory_free: 0,
+    memory_total: 0,
+    memory_used: 0,
+    net_bytes_recv: 0,
+    net_bytes_sent: 0,
+    net_packets_recv: 0,
+    net_packets_sent: 0
+  };
+
+
+  function populateMetrics(dataEntry) {
+    const field = dataEntry['string_1'];
+    const value = Number(dataEntry['double']);
+    // Use bracket notation to use the value of 'field' as the key
+    if (field !== 'field' && !isNaN(value) && field !== '') {
+      centralRegMetrics[field] = value;
+    }
+  }
+  
+
+function queryCentralRegBucket() {
+  let queryCentralReg = `
+  from(bucket: "CentralReg")
+    |> range(start: -1h)
+    |> filter(fn: (r) => r["_measurement"] == "system_metrics")
+    |> filter(fn: (r) => r["_field"] == "cpu_usage" or r["_field"] == "disk_free" or r["_field"] == "disk_total" or r["_field"] == "disk_used" or r["_field"] == "memory_free" or r["_field"] == "memory_total" or r["_field"] == "memory_used" or r["_field"] == "net_bytes_recv" or r["_field"] == "net_bytes_sent" or r["_field"] == "net_packets_recv" or r["_field"] == "net_packets_sent")
+    |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
+    |> yield(name: "mean")
+  `;
+  let csvDataCentralReg = [];
+
+  // Query the CentralReg bucket
+  queryApi.queryLines(queryCentralReg, {
+    next(line) {
+      csvDataCentralReg.push(line);
+    },
+    error(error) {
+      console.error('Error querying CentralReg bucket:', error);
+    },
+    complete() {
+      console.log('Finished querying CentralReg bucket');
+      let processedData = processCsvData(csvDataCentralReg, 'centralRegMetrics');
+    }
+  });
+}
 
   function fetchData() {
+    queryCentralRegBucket();
     Object.keys(serviceDetails).forEach(serviceName => {
       const serviceInfo = serviceDetails[serviceName];
     const serviceType = serviceInfo.type;
     const serviceStatus = serviceInfo.status;
+    //console.log(serviceName)
       fetchDataForService(serviceName, serviceType, serviceStatus); // Pass both name and type to the function
     });
   }
@@ -88,7 +121,12 @@ wsClient.on('close', function close() {
       next(line) {
         //console.log(serviceStatus)
         protocol=serviceType
-        status=serviceStatus
+        if(serviceStatus==undefined){
+          serviceStatus="Down"
+        }else{
+            status=serviceStatus
+        }
+  
         csvDataTesting.push(line);
       },
       error(error) {
@@ -106,9 +144,10 @@ wsClient.on('close', function close() {
   
   function constructQuery(serviceName, bucketName) {
     // Dynamically construct the query based on serviceName and bucketName
+    console.log(serviceName)
     let query = `
     from(bucket: "${bucketName}")
-      |> range(start: -1h)
+      |> range(start: -30d)
       |> filter(fn: (r) => r["_measurement"] == "${serviceName}")
       |> filter(fn: (r) => r["_field"] == "status_code" or r["_field"] == "response_size" or r["_field"] == "request_size" or r["_field"] == "request_count" or r["_field"] == "latency" or r["_field"] == "error_count")
       |> aggregateWindow(every: 1m, fn: mean, createEmpty: false)
@@ -117,38 +156,27 @@ wsClient.on('close', function close() {
     return query;
   }
   
-  
-  // function fetchGrpcMetricsData() {
-  //   let csvDataGrpcMetrics = [];
-  
-  //   // Fetch data from "gRPC-Metrics" bucket
-  //   queryApi.queryLines(dataExplorerQueryGrpcMetrics, {
-  //     next(line) {
-  //       protocol="gRPC"
-  //       csvDataGrpcMetrics.push(line);
-  //     },
-  //     error(error) {
-  //       console.error('Error querying gRPC-Metrics bucket:', error);
-  //     },
-  //     complete() {
-  //       console.log('Finished querying gRPC-Metrics bucket');
-  //       processCsvData(csvDataGrpcMetrics, 'grpcMetrics');
-  //     }
-  //   });
-  // }
       
   function processCsvData(csvData, bucketName) {
     const parsedData = csvParser.parse(csvData.join('\n'), { header: true, skipEmptyLines: true }).data;
-    // Unwanted keys to ignore
+
+  
     const unwantedKeys = ["true", "", "path","endpoint","string"];
   
     // Temporary storage to collect data points for each timestamp
     const tempData = {};
-     //console.log(parsedData);
+   
   parsedData.forEach(data => {
+    if(bucketName=='centralRegMetrics'){
+     // console.log(parsedData);
+      populateMetrics(data)
+      //console.log(centralRegMetrics)
+      return;
+      }
+
     const endpoint = data['string_3'];
     const timestamp = data['dateTime:RFC3339_2'];
-
+    const service= data['string_2']
     if (unwantedKeys.includes(endpoint)) {
       return; // Skip unwanted keys
     }
@@ -162,6 +190,7 @@ wsClient.on('close', function close() {
 
     if (!tempData[endpoint][timestamp]) {
       tempData[endpoint][timestamp] = {
+        bucket:service,
         count: 0,
         durationSum: 0,
         error_count:0,
@@ -207,6 +236,7 @@ wsClient.on('close', function close() {
       if (data.count !== 0 || data.durationSum !== 0 || data.request_size !== 0 || data.response_size !== 0 || data.status_code !== 0) {
         entries.push({
           timestamp: timestamp,
+          bucket:data.bucket,
           count: data.count,
           request_rate: data.count / 60,
           response_rate: data.durationSum/1000,
@@ -223,12 +253,12 @@ wsClient.on('close', function close() {
   
     if (validDataEntries.length > 0) {
       latestData[endpoint] = validDataEntries;
-      console.log("ENTERED")
     }
   }
-  console.log(latestData)
+  //console.log(latestData)
+  //console.log(centralRegMetrics)
     }
-
+    
 // Fetch data immediately on start and then every 10 seconds
 fetchData();
 setInterval(fetchData, 10 * 1000);
@@ -241,7 +271,9 @@ app.get('/websocket-entries-count', (req, res) => {
   const count = Object.keys(serviceDetails).length; // Count of unique service names
   res.json({ count }); // Send the count as JSON response
 });
-
+app.get('/central-reg-metrics', (req, res) => {
+  res.json(centralRegMetrics);
+});
 app.listen(port, () => {
   console.log(`listening on port :${port}`);
 });
