@@ -24,10 +24,13 @@ app.use(cors());
 const port = process.env.PORT || 3001;
 
 // WebSocket connection
-const wsClient = new WebSocket(wsUrl);
+let wsClient
 let serviceDetails ={}; // Store unique service names
 
-wsClient.on('message', function incoming(message) {
+function connectWebSocket(){
+  wsClient = new WebSocket(wsUrl);
+
+  wsClient.on('message', function incoming(message) {
   const data = JSON.parse(message.toString());
   data.forEach(item => {
     serviceDetails[item.Name] = {type: item.Type, status:item.Status}; // Store name and its associated type
@@ -43,6 +46,16 @@ wsClient.on('error', function error(error) {
 wsClient.on('close', function close() {
   console.log('WebSocket connection closed');
 });
+}
+
+connectWebSocket();
+
+// Interval to reconnect if the connection is closed
+setInterval(() => {
+  if (!wsClient || wsClient.readyState === WebSocket.CLOSED) {
+    connectWebSocket(); // Reconnect
+  }
+}, 15000); // 15 seconds
 
 
 
@@ -50,10 +63,10 @@ wsClient.on('close', function close() {
   let protocol="";
   let status="";
   let centralRegMetrics= {
+    timestamp:0,
     cpu_usage: 0,
     disk_free: 0,
     disk_total: 0,
-    disk_used: 0,
     memory_free: 0,
     memory_total: 0,
     memory_used: 0,
@@ -65,11 +78,14 @@ wsClient.on('close', function close() {
 
 
   function populateMetrics(dataEntry) {
+    //console.log(dataEntry)
     const field = dataEntry['string_1'];
     const value = Number(dataEntry['double']);
+    const times = dataEntry['dateTime:RFC3339_2'];
     // Use bracket notation to use the value of 'field' as the key
-    if (field !== 'field' && !isNaN(value) && field !== '') {
+    if (field !== 'field' && !isNaN(value) && field !== '' && field!='disk_used') {
       centralRegMetrics[field] = value;
+      centralRegMetrics['timestamp']=times;
     }
   }
   

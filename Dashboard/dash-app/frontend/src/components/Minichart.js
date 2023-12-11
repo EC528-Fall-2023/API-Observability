@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import * as d3 from 'd3';
 
-const LineChart = ({ dataSets, title }) => {
+const Minichart = ({ dataSets, title }) => {
   const chartRef = useRef(null);
 
   useEffect(() => {
@@ -9,9 +9,9 @@ const LineChart = ({ dataSets, title }) => {
       const svg = d3.select(chartRef.current);
       svg.selectAll("*").remove(); // Clear previous data
 
-      const width = 1400;
+      const width = 650;
       const height = 300;
-      const margin = { top: 40, right: 150, bottom: 40, left: 40 }; // Adjusted right margin for legend
+      const margin = { top: 40, right: 150, bottom: 100, left: 100 }; // Adjusted right margin for legend
 
       // Calculate the overall extent of timestamps across all datasets
       const timeExtents = dataSets.reduce((acc, dataSet) => {
@@ -24,6 +24,7 @@ const LineChart = ({ dataSets, title }) => {
         .range([margin.left, width - margin.right]);
       
       const maxY = d3.max(dataSets.map(ds => d3.max(ds.data, d => d.value)));
+      console.log(maxY)
       const y = d3.scaleLinear()
         .domain([0, maxY])
         .nice()
@@ -42,7 +43,8 @@ const LineChart = ({ dataSets, title }) => {
       svg.append("g").call(yAxis);
 
       // Generate a line for each dataset
-      dataSets.forEach((dataSet, i) => {
+      
+        dataSets.forEach((dataSet, i) => {
         if (dataSet.data.length > 1) {
               // Draw line as before
               const line = d3.line()
@@ -66,6 +68,7 @@ const LineChart = ({ dataSets, title }) => {
             }
           });
         
+
 
       // Add title
       svg.append("text")
@@ -108,7 +111,7 @@ const LineChart = ({ dataSets, title }) => {
     }
   }, [dataSets, title]); // Only re-run the effect if dataSets or title changes
 
-  return <svg ref={chartRef} width="1400" height="300"></svg>;
+  return <svg ref={chartRef} width="660" height="300"></svg>;
 };
 
-export default LineChart;
+export default Minichart;
