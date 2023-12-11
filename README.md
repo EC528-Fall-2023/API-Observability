@@ -208,6 +208,9 @@ We aim to develop an observability solution for API services, built around an op
 ### Final Demo
 - https://docs.google.com/presentation/d/1II75PosUCc73MHUXuw6IjlxI9E9cSricR8MzWkkaQrA/edit?usp=sharing
 
+## 8.   Further Instructions on Installation and Usage
+Attached [here](https://drive.google.com/file/d/17NFmHx3TcPzD-7W9Xvvs5cRgVGjYTfKv/view?usp=sharing) is a document with detailed descriptions of each component of this project, along with instructions on installation and each function
+
 
 
 ** **
