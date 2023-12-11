@@ -81,28 +81,58 @@ This product would be designed for various stakeholders involved in development 
 ### Overview
 We aim to develop an observability solution for API services, built around an open-source GoLang module. This module will offer extensive metrics, data storage, and visualization by leveraging several components to ensure scalability. Our development strategy is modular, focusing initially on a mock application. This ensures thorough design and testing phases before broadening the solution into a comprehensive GoLang module.
 
-### Architecture Breakdown
+### System Architecture Overview
 
-#### 1. API Gateway
-- The mock application features both **REST** and **gRPC** API services, accessed via a **ReactJS client**.
-- We've integrated **Protobuf** with both REST and gRPC API services for scalability.
-- For metric extraction, the API Gateway will be instrumented with **Prometheus** during the developmental phase. However, the final version will rely on natively exposed metrics from GoLang and Protobuf.
+This document provides an overview of the system architecture for a comprehensive observability platform designed to monitor REST and gRPC API services.
 
-#### 2. InfluxDB
-- This component serves as a repository for metrics, performance, and usage data collected from the API Gateway instrumentation.
-- The front-end observability dashboard will query **InfluxDB** to present the stored data to users.
+### Components
 
-#### 3. Central Registry
-- Designed to provide scalability, especially for users managing multiple API services.
-- Functions akin to zero-configuration networking: API services broadcast their status and essential details (name, service type, domain, port, metadata) upon changing their online status.
-- The Central Registry, acting as a listener, captures this information, updating a structured list that tracks the current status of all API services. This registry communicates with the front-end dashboard, ensuring that users can access an up-to-date list of services. This list, in turn, helps in querying InfluxDB for metrics.
+The system consists of the following main components:
 
-#### 4. Front-End Observability Dashboard
-- This dashboard offers a user-friendly interface, allowing users to monitor all system APIs seamlessly.
-- Users can filter APIs based on type or name and delve deeper into specific APIs for detailed metrics and insights.
+#### API Service (User-Provided)
+
+- Must be a REST or gRPC API service.
+- **Observability Module**: Contains functions for registration and instrumentation.
+  - **Registration Function**: Runs within a go routine to connect the API service to the Central Register.
+  - **Instrumentation Function**: Collects metrics from the API service and sends them to the Central Register.
+
+#### Central Register
+
+- **Server**: Stores details of registered services and collects metrics.
+- **/services WebSocket**: Maintains a list of registered services with online/offline status through heartbeat checks.
+- **/register WebSocket**: Used for service registration and maintaining a persistent connection for status monitoring.
+- **/metrics WebSocket**: Receives metrics from API services and writes them to InfluxDB.
+- **System Metrics**: Collects and provides its own system metrics to ensure the system's health.
+
+#### InfluxDB
+
+- **Time-Series Database**: Stores metrics from both the API services and the Central Register.
+
+#### Metrics Dashboard
+
+- **Visualization Interface**: Displays metrics from InfluxDB.
+- **Service Metrics**: Pulls metrics for each API service based on the list retrieved from the Central Register.
+- **System Metrics**: Displays the health and status of the Central Register itself.
+
+### Data Flow
+
+1. The API service, equipped with the observability module, registers with the Central Register using the `/register` WebSocket.
+2. The API service sends collected metrics to the Central Register via the `/metrics` WebSocket.
+3. The Central Register writes these metrics to InfluxDB.
+4. The Central Register also collects its own system metrics and stores them in InfluxDB.
+5. The Metrics Dashboard retrieves a list of services from the Central Register.
+6. The Dashboard queries InfluxDB to retrieve and display metrics for each listed API service, as well as the system metrics for the Central Register.
+
+### Observability Module Functions
+
+- **Registration Function**: This asynchronous function ensures the API service is registered and consistently connected to the Central Register.
+- **Instrumentation Function**: This function is responsible for gathering relevant metrics from the API service operations and transmitting them for centralized storage and monitoring.
+
+
 
 ### System Architecure
-![Observability Architecure](https://github.com/EC528-Fall-2023/API-Observability/assets/113144839/35e18823-ff49-4dd3-9faa-75c4b882792a)
+![image](https://github.com/EC528-Fall-2023/API-Observability/assets/113144839/3bc9271a-b907-43bb-bab1-23a97a0e08fe)
+
 ### Mock Application Architecture
 ![Mock Application Architecture](https://github.com/EC528-Fall-2023/API-Observability/assets/113144839/1f7d0c4d-6627-457c-a6fa-af90d978a06f)
 
