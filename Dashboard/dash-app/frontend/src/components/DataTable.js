@@ -366,8 +366,8 @@ const DataTable = () => {
    useEffect(() => {
     const fetchWebSocketEntriesCount = async () => {
       try {
-        const response = await fetch('http://localhost:3001/websocket-entries-count');
-        //const response = await fetch('https://dashboard-server-necuf5ddgq-ue.a.run.app/websocket-entries-count');
+        //const response = await fetch('http://localhost:3001/websocket-entries-count');
+        const response = await fetch('https://dashboard-server-necuf5ddgq-ue.a.run.app/websocket-entries-count');
         if (response.ok) {
           const data = await response.json();
           setReg(data.count); // Update the count state
@@ -392,7 +392,7 @@ const DataTable = () => {
   
     const fetchDataFromServer = async () => {
       try {
-         const response = await fetch('http://localhost:3001/data/explorer');
+         const response = await fetch('https://dashboard-server-necuf5ddgq-ue.a.run.app/data/explorer');
           if (response.ok) {
               const fetchedData = await response.json();  // Rename to fetchedData to avoid shadowing
               setIsFetching(true);
@@ -424,7 +424,7 @@ const DataTable = () => {
   useEffect(() => {
     const fetchCentralRegMetrics = async () => {
       try {
-        const response = await fetch('http://localhost:3001/central-reg-metrics'); // Use the actual endpoint
+        const response = await fetch('https://dashboard-server-necuf5ddgq-ue.a.run.app/central-reg-metrics'); // Use the actual endpoint
         if (response.ok) {
           const metrics = await response.json();
           setCentralRegMetrics(metrics); // Implement this function based on your data structur
