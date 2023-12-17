@@ -236,6 +236,7 @@ The system consists of the following main components:
 - https://docs.google.com/presentation/d/1UHGiNDGGkUJeq2H33PovCq71lBuRnhyitBJui3Gx9a4/edit?usp=sharing
 
 ### Final Demo
+- https://drive.google.com/file/d/17rND0y8ohArJe4L1hKiFsCVpJ_sMSdsU/view?usp=sharing
 - https://docs.google.com/presentation/d/1II75PosUCc73MHUXuw6IjlxI9E9cSricR8MzWkkaQrA/edit?usp=sharing
 
 ## 8.   Further Instructions on Installation and Usage
